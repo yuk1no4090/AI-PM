@@ -1,0 +1,14 @@
+{
+  "name": "ai-developer-onboarding-copilot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MVP web app for repository onboarding, codebase Q&A, impact analysis, onboarding plans, and AI quality metrics.",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

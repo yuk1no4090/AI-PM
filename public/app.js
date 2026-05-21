@@ -42,11 +42,11 @@ const copy = {
         ["QA", "Turn code changes into test scenarios, boundary cases, and regression focus."]
       ],
       cards: [
-        ["01", "Import", "Pull public GitHub repos or upload ZIP files."],
-        ["02", "Understand", "Summarize stack, modules, README, and first reads."],
-        ["03", "Ask", "Answer repository questions with cited files."],
-        ["04", "Analyze", "Map code changes to risk and test coverage."],
-        ["05", "Evaluate", "Track feedback, citation coverage, and failure reasons."]
+        ["01", "Import", "Pull public GitHub repos or upload ZIP files.", "import"],
+        ["02", "Understand", "Summarize stack, modules, README, and first reads.", "overview"],
+        ["03", "Ask", "Answer repository questions with cited files.", "chat"],
+        ["04", "Analyze", "Map code changes to risk and test coverage.", "chat"],
+        ["05", "Evaluate", "Track feedback, citation coverage, and failure reasons.", "dashboard"]
       ]
     },
     import: {
@@ -222,11 +222,11 @@ const copy = {
         ["QA / 测试", "根据代码改动定位测试场景、边界条件和回归重点。"]
       ],
       cards: [
-        ["01", "导入", "支持公开 GitHub 仓库或 ZIP 文件。"],
-        ["02", "理解", "总结技术栈、模块、README 和推荐阅读。"],
-        ["03", "提问", "基于仓库内容回答，并引用文件来源。"],
-        ["04", "分析", "评估代码改动影响范围和测试风险。"],
-        ["05", "评估", "追踪反馈、引用覆盖率和失败原因。"]
+        ["01", "导入", "支持公开 GitHub 仓库或 ZIP 文件。", "import"],
+        ["02", "理解", "总结技术栈、模块、README 和推荐阅读。", "overview"],
+        ["03", "提问", "基于仓库内容回答，并引用文件来源。", "chat"],
+        ["04", "分析", "评估代码改动影响范围和测试风险。", "chat"],
+        ["05", "评估", "追踪反馈、引用覆盖率和失败原因。", "dashboard"]
       ]
     },
     import: {
@@ -553,8 +553,8 @@ function landingPage() {
           <h2>${c.home.workflowTitle}</h2>
         </div>
         <div class="workflow-grid">
-          ${cards.map(([num, title, copy]) => `
-            <article class="workflow-card">
+          ${cards.map(([num, title, copy, page]) => `
+            <article class="workflow-card" data-page="${page}" role="button" tabindex="0">
               <span>${num}</span>
               <h3>${title}</h3>
               <p>${copy}</p>

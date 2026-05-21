@@ -515,6 +515,7 @@ nav {
   border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.04);
   padding: 22px;
+  cursor: pointer;
   transition: all var(--transition);
 }
 

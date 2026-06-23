@@ -5,17 +5,43 @@ An MVP web app for helping new engineers, technical PMs, and QA understand a rep
 ## Run
 
 ```bash
+npm install
 npm run dev
 ```
 
 Then open `http://localhost:3000`.
+
+## Test
+
+```bash
+npm run test:static
+npm test
+```
+
+`npm run test:static` runs `scripts/static-checks.js`, which performs syntax checks, locale-copy consistency checks, frontend agent UI checks, text-quality checks, runtime dependency checks, API documentation sync checks, store-schema checks, smoke reliability checks, safety guardrail contract checks, and agent response contract checks without starting a server. `npm test` runs the static checks plus the smoke test.
+
+Static check scripts use the `scripts/check-*.js` naming convention. `scripts/static-checks.js` syntax-checks all `scripts/*.js` files and discovers/runs `check-*.js` automatically.
+
+The smoke test starts the server on temporary ports with isolated temporary data stores, then verifies custom `STORE_PATH` creation, corrupt store backup, sample import, LangGraph agent execution, memory confirmation/forget, Chinese memory suggestions, safety guardrails, Chinese prompt-injection and secret-request guardrails, tool-permission guardrails, retrieved-context prompt-injection handling, retrieved sensitive content handling, Q&A, evaluation metrics, API-key mode fallback when a fake OpenAI-compatible model returns schema-invalid JSON, missing-citation guardrails when the fake model cites a nonexistent file, and sensitive-output guardrails when the fake model emits secret-like text. Smoke requests use explicit timeouts and wait for spawned servers to exit during cleanup. Use `npm run test:smoke` to run only the server-backed smoke test.
+
+## Runtime Configuration
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `PORT` | `3000` | HTTP server port. |
+| `HOST` | `127.0.0.1` | HTTP server host. |
+| `DATA_DIR` | `data` | Directory for runtime JSON storage. |
+| `STORE_PATH` | `DATA_DIR/store.json` | Exact runtime store file path. |
+| `OPENAI_API_KEY` | unset | Enables AI-enhanced model calls when set. |
+| `OPENAI_BASE_URL` | `https://api.openai.com` | OpenAI-compatible API base URL. |
+| `OPENAI_MODEL` | `gpt-4o-mini` | Chat completion model name. |
 
 ## LLM Setup (Optional but recommended)
 
 Set the following environment variables to enable AI-powered answers:
 
 ```bash
-# Using DeepSeek (recommended — cheap, OpenAI-compatible, great Chinese support)
+# Using DeepSeek (recommended: cheap, OpenAI-compatible, strong Chinese support)
 export OPENAI_API_KEY=sk-your-deepseek-key
 export OPENAI_BASE_URL=https://api.deepseek.com
 export OPENAI_MODEL=deepseek-chat
@@ -34,14 +60,14 @@ curl http://localhost:3000/api/health
 
 The response shows whether the LLM is configured and which provider/model is active.
 
-Without an API key, the app falls back to a deterministic retrieval-based answer generator — the demo still works, but answers will be template-based rather than AI-generated. The UI shows "AI-enhanced mode" or "Offline retrieval mode" so it's always clear which mode is active.
+Without an API key, the app falls back to a deterministic retrieval-based answer generator. The demo still works, but answers will be template-based rather than AI-generated. The UI shows "AI-enhanced mode" or "Offline retrieval mode" so it is always clear which mode is active.
 
 ## Notes
 
-- No install step is required; the MVP uses only Node.js standard library APIs.
+- The runtime uses Node.js plus LangGraph packages for the agent workflow.
 - GitHub imports use public repository ZIP downloads.
 - ZIP uploads are parsed locally by the server.
-- Runtime data is stored in `data/store.json`.
+- Runtime data is stored in `data/store.json` by default. Override with `DATA_DIR` or `STORE_PATH` for isolated runs and tests. Non-GET API requests run through a write queue. Store saves write a same-directory temporary file and rename it into place to reduce partial-write corruption. If an existing store contains invalid JSON, it is moved aside with a `.corrupt-` suffix before a fresh normalized store is created.
 
 ## Current MVP Features
 
@@ -49,7 +75,79 @@ Without an API key, the app falls back to a deterministic retrieval-based answer
 - Project overview with inferred stack, directory tree, core modules, README summary, and recommended first reads.
 - Repository Q&A with related files, uncertainty, suggested next questions, and feedback buttons.
 - Impact analysis with impacted modules, risk level, testing suggestions, and open questions.
-- Agent Workflow tab that demonstrates a single-agent tool loop: classify change, retrieve evidence, expand dependency context, estimate risk, validate citations, and compose structured output.
-- Evaluation dashboard with total questions, agent runs, helpful rate, citation coverage, uncertainty rate, negative feedback, high-risk questions, and recent feedback.
+- Agent Workflow tab backed by a LangGraph StateGraph with classifier, retriever, context expansion, impact analysis, QA planning, memory, safety guardrails, and structured synthesis.
+- User preference memory suggestions that require explicit confirmation before being saved. Confirmed preferences are global to the local app instance; suggestions carry project ownership so confirmation/ignore actions can verify the active project. Ignored suggestions suppress the same key/value suggestion from being repeated.
+- Application-level AI safety checks for prompt injection, secret requests, read-only tool boundaries, retrieved sensitive content, citation validation, uncited impact areas, sensitive output, and overconfidence.
+- Evaluation dashboard with total questions, agent runs, helpful rate, citation coverage, uncertainty rate, negative feedback, high-risk questions, guardrail hits, memory confirmations, fallback runs, and recent feedback.
+
+## Agent Runtime Architecture
+
+The LangGraph workflow is deterministic-first so the product remains demoable without an API key. OpenAI-compatible model calls are used only as an enhancement inside the harness.
+
+```text
+input safety
+  -> preference memory
+  -> classifier
+  -> retriever
+  -> context expander
+  -> impact analyst
+  -> QA planner
+  -> safety guardrails
+  -> structured synthesizer
+```
+
+The `modelAdapter` boundary uses an OpenAI-compatible chat completions call when configured and otherwise reports deterministic offline retrieval. LLM transport failures, timeouts, HTTP errors, invalid JSON, and schema errors are reported through `harness.model_adapter` before the deterministic fallback is used. The `agentHarness` boundary records runtime metadata for each agent run: model mode, provider, adapter, executed steps, duration, fallback status, fallback reason, schema status, budgets, budget status, read-only tool registry, and errors. Repository files are treated as untrusted evidence; retrieved text is never promoted into system instructions. Sensitive-looking values are redacted before repository context is sent to a model.
+
+## API Surface
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/health` | Server and LLM configuration status. |
+| `GET` | `/api/projects` | List imported projects without chunk bodies. |
+| `POST` | `/api/import` | Import sample, public GitHub repository, or ZIP upload. |
+| `POST` | `/api/chat` | Repository Q&A or standard impact analysis. |
+| `POST` | `/api/agent-impact` | LangGraph multi-agent impact workflow. |
+| `POST` | `/api/onboarding` | Generate role-based onboarding plan. |
+| `POST` | `/api/feedback` | Record answer feedback. |
+| `GET` | `/api/evaluation` | Return quality, memory, safety, and fallback metrics. |
+| `GET` | `/api/memory` | Return confirmed preferences and recent memory suggestions. |
+| `POST` | `/api/memory/confirm` | Confirm a pending memory suggestion and update preferences. |
+| `POST` | `/api/memory/forget` | Ignore a suggestion, clear one preference, or clear all preferences. |
+
+Error responses keep a human-readable `error` string and add a machine-readable `code`. Memory endpoints currently use:
+
+- `MEMORY_SUGGESTION_NOT_FOUND`
+- `MEMORY_SUGGESTION_NOT_PENDING`
+- `MEMORY_PROJECT_MISMATCH`
+- `UNKNOWN_MEMORY_PREFERENCE_KEY`
+- `UNKNOWN_MEMORY_PREFERENCE_VALUE`
+
+Common API errors include:
+
+- `PROJECT_REQUIRED`
+- `PROJECT_NOT_FOUND`
+- `INVALID_GITHUB_REPO`
+- `GITHUB_IMPORT_FAILED`
+- `GITHUB_IMPORT_TIMEOUT`
+- `IMPORT_SOURCE_REQUIRED`
+- `IMPORT_INVALID_ZIP`
+- `IMPORT_TOO_LARGE`
+- `NO_SUPPORTED_FILES`
+- `REQUEST_BODY_TOO_LARGE`
+- `QUESTION_REQUIRED`
+- `ANSWER_NOT_FOUND`
+- `INVALID_FEEDBACK_TYPE`
+- `ROUTE_NOT_FOUND`
+
+`/api/agent-impact` remains compatible with the existing frontend and adds these fields:
+
+- `memory_used`: confirmed preference memory applied to the run.
+- `memory_suggestions`: pending suggestions that require explicit user confirmation.
+- `harness`: LangGraph runtime, model mode, model adapter, executed steps, duration, fallback status, fallback reason, schema status, budgets, budget status, read-only tool registry, model error codes, and errors.
+- `safety`: aggregate safety status, risk types, and guardrail checks.
+
+Evaluation metrics are scoped to the requested `projectId`, so safety and memory counts reflect the currently selected imported repository. Metrics ignore unknown feedback types so old or manually edited store data cannot pollute quality rates and failure-reason counts.
+
+See [docs/AGENT_RUNTIME_ARCHITECTURE.md](docs/AGENT_RUNTIME_ARCHITECTURE.md) for the LangGraph, memory, harness, and safety implementation boundary.
 
 See [docs/PRD.md](docs/PRD.md) for the product requirements and roadmap.

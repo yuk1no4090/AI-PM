@@ -1,0 +1,101 @@
+import { readFile } from "node:fs/promises";
+
+const [doc, prd, userGuide] = await Promise.all([
+  readFile("docs/AGENT_RUNTIME_ARCHITECTURE.md", "utf8"),
+  readFile("docs/PRD.md", "utf8"),
+  readFile("docs/USER_GUIDE.md", "utf8")
+]);
+const readme = await readFile("README.md", "utf8");
+
+const requiredSections = [
+  "## Scope",
+  "## Graph Nodes",
+  "## Memory Boundary",
+  "## modelAdapter",
+  "## agentHarness",
+  "## Tool Policy",
+  "## AI Safety Boundary",
+  "## Non-Goals",
+  "## Verification Gates"
+];
+
+const requiredTerms = [
+  "LangGraph `StateGraph`",
+  "userPreferences",
+  "memorySuggestions",
+  "Confirmed preference memory is global for the local app instance, not project-scoped",
+  "Memory suggestions carry `projectId`",
+  "runModelAdapter()",
+  "buildAgentHarnessReport()",
+  "withWorkflowTimeout()",
+  "read-only tool registry",
+  "Repository content is never promoted into system instructions",
+  "fake OpenAI-compatible schema failure",
+  "valid schema with nonexistent citation",
+  "valid schema with uncited impact area",
+  "Selective forget clears one preference key",
+  "Unsafe input does not create new memory suggestions",
+  "Suggestion records are normalized on store load/save",
+  "Only pending suggestions can be confirmed or ignored",
+  "Confirm and forget requests may include `projectId`",
+  "the suggestion must belong to that project",
+  "Unknown preference keys are rejected instead of falling back to full memory deletion",
+  "Memory API errors return `{ error, code }`",
+  "MEMORY_SUGGESTION_NOT_PENDING",
+  "MEMORY_PROJECT_MISMATCH",
+  "UNKNOWN_MEMORY_PREFERENCE_KEY"
+];
+
+const missingSections = requiredSections.filter((section) => !doc.includes(section));
+const missingTerms = requiredTerms.filter((term) => !doc.includes(term));
+const readmeMissing = readme.includes("docs/AGENT_RUNTIME_ARCHITECTURE.md")
+  ? []
+  : ["README link to docs/AGENT_RUNTIME_ARCHITECTURE.md"];
+const stalePrdTerms = [
+  "当前 single-agent workflow 升级为 LangGraph",
+  '"pattern": "single-agent tool workflow"'
+].filter((term) => prd.includes(term));
+const requiredUserGuideTerms = [
+  "LangGraph Agent 工作流",
+  "9 节点 LangGraph",
+  "Memory、Harness、Safety",
+  "fallback 和预算状态",
+  "已确认和已忽略建议会保留状态标记",
+  "/api/memory",
+  "/api/memory/confirm",
+  "/api/memory/forget",
+  "guardrail hits",
+  "memory confirmations",
+  "fallback runs"
+];
+const missingUserGuideTerms = requiredUserGuideTerms.filter((term) => !userGuide.includes(term));
+const staleUserGuideTerms = [
+  "展示 6 步 Agent",
+  "Agent 工作流的 6 步",
+  "零依赖"
+].filter((term) => userGuide.includes(term));
+
+if (
+  missingSections.length
+  || missingTerms.length
+  || readmeMissing.length
+  || stalePrdTerms.length
+  || missingUserGuideTerms.length
+  || staleUserGuideTerms.length
+) {
+  console.error(JSON.stringify({
+    missingSections,
+    missingTerms,
+    readmeMissing,
+    stalePrdTerms,
+    missingUserGuideTerms,
+    staleUserGuideTerms
+  }, null, 2));
+  throw new Error("Architecture documentation contract is incomplete.");
+}
+
+console.log(JSON.stringify({
+  ok: true,
+  sections: requiredSections.length,
+  terms: requiredTerms.length
+}, null, 2));

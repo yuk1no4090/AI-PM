@@ -1535,6 +1535,72 @@ code {
   margin-top: 0;
 }
 
+.runtime-status,
+.memory-suggestions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.runtime-status div,
+.memory-suggestions > div {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 12px;
+}
+
+.runtime-status strong,
+.memory-suggestions strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.runtime-status span,
+.memory-suggestions span,
+.memory-suggestions p {
+  display: block;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.memory-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.memory-actions button {
+  min-height: 30px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  padding: 0 10px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.memory-actions button:hover {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.memory-state {
+  width: fit-content;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  padding: 4px 8px;
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
 /* ---- Trace Steps ---- */
 .trace-step {
   display: grid;
@@ -2057,6 +2123,11 @@ code {
   }
 
   .agent-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .runtime-status,
+  .memory-suggestions {
     grid-template-columns: 1fr;
   }
 

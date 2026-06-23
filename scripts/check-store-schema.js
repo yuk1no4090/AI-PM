@@ -1,0 +1,129 @@
+import { readFile } from "node:fs/promises";
+
+const serverSource = await readFile("server.js", "utf8");
+
+const requiredTopLevelFields = [
+  "projects",
+  "questions",
+  "answers",
+  "feedback",
+  "userPreferences",
+  "memorySuggestions"
+];
+
+const requiredPreferenceFields = [
+  "role",
+  "language",
+  "detailLevel",
+  "focusAreas",
+  "taskTypes",
+  "updatedAt"
+];
+
+const missingTopLevelFields = requiredTopLevelFields.filter((field) => {
+  return !serverSource.includes(`normalized.${field}`);
+});
+
+const createPrefsMatch = serverSource.match(/function createEmptyPreferences\(\) \{[\s\S]*?return \{([\s\S]*?)\n  \};\n\}/);
+if (!createPrefsMatch) {
+  throw new Error("Could not locate createEmptyPreferences().");
+}
+
+const preferencesBody = createPrefsMatch[1];
+const missingPreferenceFields = requiredPreferenceFields.filter((field) => {
+  return !new RegExp(`\\b${field}\\s*:`).test(preferencesBody);
+});
+
+const arrayNormalizationChecks = [
+  "normalized.userPreferences.focusAreas = Array.isArray(normalized.userPreferences.focusAreas)",
+  "normalized.userPreferences.taskTypes = Array.isArray(normalized.userPreferences.taskTypes)",
+  "normalized.memorySuggestions = Array.isArray(normalized.memorySuggestions)",
+  "normalized.memorySuggestions.map(normalizeMemorySuggestion).filter(Boolean)"
+];
+
+const missingArrayNormalization = arrayNormalizationChecks.filter((snippet) => {
+  return !serverSource.includes(snippet);
+});
+
+const requiredSuggestionNormalizationSnippets = [
+  "function normalizeMemorySuggestion",
+  "allowedStatuses",
+  "\"pending\", \"confirmed\", \"ignored\"",
+  "crypto.randomUUID()",
+  "createdAt: item.createdAt || new Date().toISOString()"
+];
+
+const missingSuggestionNormalization = requiredSuggestionNormalizationSnippets.filter((snippet) => {
+  return !serverSource.includes(snippet);
+});
+
+const requiredMemoryEndpointSnippets = [
+  "function apiError",
+  "code: error.code || \"BAD_REQUEST\"",
+  "let writeQueue = Promise.resolve()",
+  "function withWriteLock",
+  "return withWriteLock(() => handleApiUnlocked(req, res, pathname))",
+  "function backupCorruptStore",
+  "error instanceof SyntaxError",
+  ".corrupt-",
+  "path.dirname(STORE_PATH)",
+  "const tempPath = path.join(",
+  "fs.rename(tempPath, STORE_PATH)",
+  "fs.unlink(tempPath).catch(() => {})",
+  "const FEEDBACK_TYPES = new Set",
+  "FEEDBACK_TYPES.has(item.type)",
+  "if (projectId) findProject(store, projectId)",
+  "suggestion.projectId !== body.projectId",
+  "const MEMORY_PREFERENCE_KEYS = new Set",
+  "const MEMORY_VALUE_OPTIONS = {",
+  "function validateMemorySuggestionValue",
+  "产品|需求",
+  "简洁|简短",
+  "风险|影响",
+  "安全|security",
+  "MEMORY_PREFERENCE_KEYS.has(suggestion.key)",
+  "MEMORY_PREFERENCE_KEYS.has(body.key)",
+  "Memory suggestion is not pending.",
+  "Unknown memory preference key.",
+  "MEMORY_SUGGESTION_NOT_PENDING",
+  "MEMORY_PROJECT_MISMATCH",
+  "UNKNOWN_MEMORY_PREFERENCE_KEY",
+  "UNKNOWN_MEMORY_PREFERENCE_VALUE",
+  "PROJECT_REQUIRED",
+  "PROJECT_NOT_FOUND",
+  "IMPORT_SOURCE_REQUIRED",
+  "QUESTION_REQUIRED",
+  "ANSWER_NOT_FOUND",
+  "INVALID_FEEDBACK_TYPE",
+  "ROUTE_NOT_FOUND"
+];
+
+const missingMemoryEndpointSnippets = requiredMemoryEndpointSnippets.filter((snippet) => {
+  return !serverSource.includes(snippet);
+});
+
+if (
+  missingTopLevelFields.length
+  || missingPreferenceFields.length
+  || missingArrayNormalization.length
+  || missingSuggestionNormalization.length
+  || missingMemoryEndpointSnippets.length
+) {
+  console.error(JSON.stringify({
+    missingTopLevelFields,
+    missingPreferenceFields,
+    missingArrayNormalization,
+    missingSuggestionNormalization,
+    missingMemoryEndpointSnippets
+  }, null, 2));
+  throw new Error("Store schema normalization is incomplete.");
+}
+
+console.log(JSON.stringify({
+  ok: true,
+  topLevelFields: requiredTopLevelFields.length,
+  preferenceFields: requiredPreferenceFields.length,
+  arrayNormalizationChecks: arrayNormalizationChecks.length,
+  suggestionNormalizationChecks: requiredSuggestionNormalizationSnippets.length,
+  memoryEndpointChecks: requiredMemoryEndpointSnippets.length
+}, null, 2));

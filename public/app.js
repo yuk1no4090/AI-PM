@@ -165,6 +165,24 @@ const copy = {
       agentInstructions: "Agent Instructions",
       frameworkConcepts: "Framework Concepts",
       guardrails: "Guardrails",
+      memory: "Memory",
+      harness: "Harness",
+      safety: "Safety",
+      noMemory: "No confirmed preference memory",
+      pendingMemory: "pending",
+      agentRuntime: "Agent runtime",
+      unknown: "unknown",
+      steps: "steps",
+      durationMs: "ms",
+      fallbackUsed: "fallback",
+      noFallback: "no fallback",
+      budgetOk: "budget ok",
+      budgetExceeded: "budget exceeded",
+      guardrailsPassed: "guardrails passed",
+      needsReview: "needs review",
+      memorySuggestions: "Memory Suggestions",
+      saveMemory: "Save",
+      ignoreMemory: "Ignore",
       evidence: "Evidence Used",
       goal: "Goal",
       tasks: "Tasks",
@@ -189,6 +207,9 @@ const copy = {
       uncertain: "Uncertain Answer Rate",
       negative: "Negative Feedback Rate",
       highRisk: "High Risk Questions",
+      guardrailHits: "Guardrail Hits",
+      memorySaves: "Memory Saves",
+      fallbackRuns: "Fallback Runs",
       failures: "Top Failure Reasons",
       recent: "Recent Feedback",
       signals: "Product iteration signals",
@@ -345,6 +366,24 @@ const copy = {
       agentInstructions: "Agent 指令",
       frameworkConcepts: "框架概念",
       guardrails: "Guardrails",
+      memory: "记忆",
+      harness: "Harness",
+      safety: "安全",
+      noMemory: "暂无已确认偏好记忆",
+      pendingMemory: "待确认",
+      agentRuntime: "Agent 运行时",
+      unknown: "未知",
+      steps: "步",
+      durationMs: "毫秒",
+      fallbackUsed: "已 fallback",
+      noFallback: "无 fallback",
+      budgetOk: "预算正常",
+      budgetExceeded: "预算超限",
+      guardrailsPassed: "护栏通过",
+      needsReview: "需要复核",
+      memorySuggestions: "记忆建议",
+      saveMemory: "保存",
+      ignoreMemory: "忽略",
       evidence: "使用的证据",
       goal: "目标",
       tasks: "任务",
@@ -369,6 +408,9 @@ const copy = {
       uncertain: "不确定回答率",
       negative: "负反馈率",
       highRisk: "高风险问题",
+      guardrailHits: "护栏命中",
+      memorySaves: "记忆保存",
+      fallbackRuns: "Fallback 次数",
       failures: "主要失败原因",
       recent: "最近反馈",
       signals: "产品迭代信号",
@@ -437,8 +479,19 @@ async function api(path, options = {}) {
     ...options
   });
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error || "Request failed.");
+  if (!response.ok) {
+    const error = new Error(payload.error || "Request failed.");
+    error.status = response.status;
+    error.code = payload.code || "REQUEST_FAILED";
+    error.payload = payload;
+    throw error;
+  }
   return payload;
+}
+
+function showError(error) {
+  const code = error?.code && error.code !== "REQUEST_FAILED" ? `\n[${error.code}]` : "";
+  alert(`${error?.message || "Request failed."}${code}`);
 }
 
 async function loadProjects() {
@@ -930,6 +983,69 @@ function renderJsonSummary(value) {
   return String(value ?? "");
 }
 
+function renderRuntimeStatus(payload) {
+  const c = t();
+  const memory = payload.memory_used || {};
+  const harness = payload.harness || {};
+  const safety = payload.safety || {};
+  const budget = harness.budget_status || {};
+  const modelAdapter = harness.model_adapter || {};
+  const pendingMemory = (payload.memory_suggestions || []).filter((item) => item.status === "pending").length;
+  const memoryStatus = [
+    memory.used ? memory.summary : c.chat.noMemory,
+    `${pendingMemory} ${c.chat.pendingMemory}`
+  ].filter(Boolean).join(" | ");
+  const harnessStatus = [
+    harness.runtime || c.chat.agentRuntime,
+    harness.model_mode || c.chat.unknown,
+    `${harness.steps_executed || 0} ${c.chat.steps}`,
+    `${harness.duration_ms ?? 0}${c.chat.durationMs}`,
+    harness.fallback_used ? c.chat.fallbackUsed : c.chat.noFallback,
+    harness.fallback_reason,
+    modelAdapter.error_code,
+    modelAdapter.http_status ? `HTTP ${modelAdapter.http_status}` : null,
+    budget.step_budget_exceeded || budget.timeout_exceeded ? c.chat.budgetExceeded : c.chat.budgetOk
+  ].filter(Boolean).join(" | ");
+  const safetyStatus = [
+    safety.status || c.chat.unknown,
+    ...(safety.risk_types || [])
+  ].join(" | ");
+  const cards = [
+    [c.chat.memory, memoryStatus],
+    [c.chat.harness, harnessStatus],
+    [c.chat.safety, safetyStatus]
+  ];
+  return html`
+    <div class="runtime-status">
+      ${cards.map(([label, value]) => `<div><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></div>`).join("")}
+    </div>
+  `;
+}
+
+function renderMemorySuggestions(suggestions = []) {
+  const c = t();
+  const visible = suggestions.slice(0, 3);
+  if (!visible.length) return "";
+  return html`
+    <h3>${c.chat.memorySuggestions}</h3>
+    <div class="memory-suggestions">
+      ${visible.map((item) => `
+        <div>
+          <strong>${escapeHtml(item.label || item.key)}</strong>
+          <span>${escapeHtml(item.key)} = ${escapeHtml(String(item.value))} / ${escapeHtml(item.confidence || "medium")}</span>
+          <p>${escapeHtml(item.reason || "")}</p>
+          ${item.status === "pending"
+            ? `<div class="memory-actions">
+                <button data-memory-action="confirm" data-suggestion="${escapeHtml(item.id)}">${c.chat.saveMemory}</button>
+                <button data-memory-action="ignore" data-suggestion="${escapeHtml(item.id)}">${c.chat.ignoreMemory}</button>
+              </div>`
+            : `<span class="memory-state">${escapeHtml(item.status || c.chat.unknown)}</span>`}
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 function renderAgentImpactMessage(message) {
   const c = t();
   const payload = message.payload;
@@ -940,10 +1056,12 @@ function renderAgentImpactMessage(message) {
         <div class="agent-header">
           <div>
             <h3>${escapeHtml(payload.agent?.name || "Impact Analysis Agent")}</h3>
-            <p>${escapeHtml(payload.agent?.pattern || "single-agent tool workflow")}</p>
+            <p>${escapeHtml(payload.agent?.pattern || "stateful multi-agent graph workflow")}</p>
           </div>
-          <span>${escapeHtml(payload.guardrails?.every((guardrail) => guardrail.status === "passed") ? "guardrails passed" : "needs review")}</span>
+          <span>${escapeHtml(payload.guardrails?.every((guardrail) => guardrail.status === "passed") ? c.chat.guardrailsPassed : c.chat.needsReview)}</span>
         </div>
+
+        ${renderRuntimeStatus(payload)}
 
         <h3>${c.chat.impactSummary}</h3>
         <p>${escapeHtml(payload.summary)}</p>
@@ -993,6 +1111,8 @@ function renderAgentImpactMessage(message) {
             </div>
           `)}
         </div>
+
+        ${renderMemorySuggestions(payload.memory_suggestions)}
 
         <h3>${c.chat.evidence}</h3>
         <div class="citation-list">
@@ -1107,6 +1227,9 @@ function dashboardPage() {
     negative_feedback_rate: 0,
     agent_runs: 0,
     high_risk_questions: 0,
+    guardrail_hits: 0,
+    memory_confirmations: 0,
+    fallback_runs: 0,
     top_failure_reasons: [],
     recent_feedback: []
   };
@@ -1117,7 +1240,10 @@ function dashboardPage() {
     [c.dashboard.citation, `${metrics.citation_coverage}%`],
     [c.dashboard.uncertain, `${metrics.uncertain_answer_rate}%`],
     [c.dashboard.negative, `${metrics.negative_feedback_rate}%`],
-    [c.dashboard.highRisk, metrics.high_risk_questions]
+    [c.dashboard.highRisk, metrics.high_risk_questions],
+    [c.dashboard.guardrailHits, metrics.guardrail_hits || 0],
+    [c.dashboard.memorySaves, metrics.memory_confirmations || 0],
+    [c.dashboard.fallbackRuns, metrics.fallback_runs || 0]
   ];
   return html`
     <main class="page-shell">
@@ -1213,7 +1339,7 @@ async function importRepository({ sample = false } = {}) {
     await refreshMetrics(false);
     render();
   } catch (error) {
-    alert(error.message);
+    showError(error);
     state.progress = [];
     render();
   } finally {
@@ -1256,7 +1382,7 @@ async function ask(kind = "qa", questionOverride = "") {
     await refreshMetrics(false);
     render();
   } catch (error) {
-    alert(error.message);
+    showError(error);
     state.messages = state.messages.filter((item) => item.answerId !== "pending");
     render();
   }
@@ -1288,7 +1414,7 @@ async function runAgentImpact(questionOverride = "") {
     await refreshMetrics(false);
     render();
   } catch (error) {
-    alert(error.message);
+    showError(error);
     state.messages = state.messages.filter((item) => item.answerId !== "pending");
     render();
   }
@@ -1311,7 +1437,7 @@ async function generateOnboarding() {
     await refreshMetrics(false);
     render();
   } catch (error) {
-    alert(error.message);
+    showError(error);
   }
 }
 
@@ -1325,7 +1451,34 @@ async function sendFeedback(answerId, type) {
     const button = document.querySelector(`[data-answer="${answerId}"][data-feedback="${type}"]`);
     if (button) button.classList.add("selected");
   } catch (error) {
-    alert(error.message);
+    showError(error);
+  }
+}
+
+async function handleMemorySuggestion(suggestionId, action) {
+  try {
+    const endpoint = action === "confirm" ? "/api/memory/confirm" : "/api/memory/forget";
+    await api(endpoint, {
+      method: "POST",
+      body: JSON.stringify({ suggestionId, projectId: state.project?.id })
+    });
+    state.messages = state.messages.map((message) => {
+      const suggestions = message.payload?.memory_suggestions;
+      if (!Array.isArray(suggestions)) return message;
+      return {
+        ...message,
+        payload: {
+          ...message.payload,
+          memory_suggestions: suggestions.map((item) => item.id === suggestionId
+            ? { ...item, status: action === "confirm" ? "confirmed" : "ignored" }
+            : item)
+        }
+      };
+    });
+    await refreshMetrics(false);
+    render();
+  } catch (error) {
+    showError(error);
   }
 }
 
@@ -1391,6 +1544,12 @@ document.addEventListener("click", (event) => {
   const feedback = event.target.closest("[data-feedback]");
   if (feedback) {
     sendFeedback(feedback.dataset.answer, feedback.dataset.feedback);
+    return;
+  }
+
+  const memoryButton = event.target.closest("[data-memory-action]");
+  if (memoryButton) {
+    handleMemorySuggestion(memoryButton.dataset.suggestion, memoryButton.dataset.memoryAction);
   }
 });
 

@@ -89,19 +89,26 @@ npm run dev
 2. 点击 "Analyze Impact"
 3. 输出：影响摘要、受影响模块（按 Data Model / API Routes / Business Logic / UI / Tests 分类）、风险等级、测试建议、开放问题
 
-#### 4.3 Agent Tab — Agentic 工作流
+#### 4.3 Agent Tab — LangGraph Agent 工作流
 
-**功能**：展示 6 步 Agent 工具调用流程，每步可见输入/输出/引用。
+**功能**：展示 9 节点 LangGraph Agent 工作流，每步可见输入、输出、引用和 guardrail 结果。
 
 **流程**：
-1. classify_change_request — 识别改动类型
-2. retrieve_repository_chunks — 检索相关 chunks
-3. expand_dependency_context — 扩展搜索上下游依赖
-4. estimate_impact_risk — 按模块聚合风险
-5. validate_citations — 校验引用文件是否存在
-6. compose_structured_answer — 生成结构化输出
+1. input_safety — 检查 prompt injection、密钥请求和越权工具意图
+2. memory — 加载已确认偏好，并生成待确认记忆建议
+3. classify_change_request — 识别改动类型
+4. retrieve_repository_chunks — 检索相关 chunks
+5. expand_dependency_context — 扩展搜索上下游依赖
+6. estimate_impact_risk — 按模块聚合风险
+7. plan_regression_tests — 生成回归测试建议
+8. validate_output — 校验引用、敏感输出、过度自信和工具策略
+9. compose_structured_answer — 生成结构化输出
 
-**面试价值**：展示 instructions / tools / trace / guardrails / structured output 这些 Agent 框架核心理念。
+**状态卡**：Agent header 会展示 Memory、Harness、Safety 三类状态。Memory 显示已使用偏好和待确认数量；Harness 显示模型模式、步骤数、耗时、fallback 和预算状态；Safety 显示护栏通过或需要复核以及命中的风险类型。
+
+**记忆建议**：Agent 会展示最近的记忆建议。待确认建议可保存或忽略；已确认和已忽略建议会保留状态标记，避免用户误以为本次旧回答已经应用了刚保存的偏好。
+
+**面试价值**：展示 LangGraph nodes / state / tools / trace / memory / harness / guardrails / structured output 这些 Agent 工程核心理念。
 
 #### 4.4 Onboarding Plan Tab — 入职学习路径
 
@@ -164,7 +171,7 @@ npm run dev
 
 | 层 | 技术 |
 |---|---|
-| 后端 | Node.js 原生 HTTP（零依赖） |
+| 后端 | Node.js 原生 HTTP + LangGraph Agent Runtime |
 | 前端 | 原生 JS + CSS（SPA，无框架） |
 | 数据 | JSON 文件存储（`data/store.json`） |
 | LLM | OpenAI 兼容 API（DeepSeek / GPT-4o-mini / Groq 等） |
@@ -179,10 +186,13 @@ npm run dev
 | GET | `/api/projects` | 获取所有项目 |
 | POST | `/api/import` | 导入仓库（sample / repoUrl / zipBase64） |
 | POST | `/api/chat` | 问答 / 影响分析（kind: "qa" / "impact"） |
-| POST | `/api/agent-impact` | Agent 工作流影响分析 |
+| POST | `/api/agent-impact` | LangGraph Agent 工作流影响分析，返回 memory / harness / safety 状态 |
 | POST | `/api/onboarding` | 生成入职学习计划 |
 | POST | `/api/feedback` | 提交回答反馈 |
 | GET | `/api/evaluation` | 获取评估指标 |
+| GET | `/api/memory` | 获取已确认偏好和最近记忆建议 |
+| POST | `/api/memory/confirm` | 确认待保存的记忆建议 |
+| POST | `/api/memory/forget` | 忽略建议、清除单项偏好或清空偏好 |
 
 ---
 
@@ -195,11 +205,14 @@ npm run dev
 3. **Overview 页**（30 秒）→ 展示自动生成的技术栈、模块、推荐阅读
 4. **进入 Copilot → Q&A Tab**（1 分钟）→ 问 "Explain the user authentication flow"，展示带引用的 AI 回答
 5. **切换到 Impact Tab**（1 分钟）→ 输入 "Add partially_refunded status to orders"，展示影响分析
-6. **切换到 Agent Tab**（1 分钟）→ 运行 Agent 工作流，展示 trace 和 guardrails
-7. **打开 Dashboard**（30 秒）→ 展示真实评估指标
+6. **切换到 Agent Tab**（1 分钟）→ 运行 Agent 工作流，展示 trace、Memory / Harness / Safety 状态和 guardrails
+7. **打开 Dashboard**（30 秒）→ 展示真实评估指标，包括 guardrail hits、memory confirmations、fallback runs
 
 **关键面试话术**：
 - "顶部绿色标识说明当前是 AI 增强模式，我接入了 DeepSeek API"
 - "每条回答都有文件引用——这是 RAG 的 citation 机制，降低幻觉"
-- "Agent 工作流的 6 步是可解释的，每步能看到输入输出和引用文件"
+- "Agent 工作流是 LangGraph 9 节点编排，每步能看到输入输出、引用文件和 guardrail 状态"
+- "记忆模块只保存用户确认过的偏好，未确认建议不会写入长期记忆"
+- "Harness 统一记录模型模式、步骤预算、耗时、schema 校验和 fallback"
+- "Safety 护栏会标记 prompt injection、敏感信息请求、越权工具意图和无效引用"
 - "评估仪表盘有真实数据——83% helpful rate、86% citation coverage、14% uncertain rate"

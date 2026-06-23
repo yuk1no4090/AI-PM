@@ -1,0 +1,83 @@
+import { readFile } from "node:fs/promises";
+
+const [serverSource, readme, userGuide] = await Promise.all([
+  readFile("server.js", "utf8"),
+  readFile("README.md", "utf8"),
+  readFile("docs/USER_GUIDE.md", "utf8")
+]);
+
+const routePattern = /req\.method === "([^"]+)" && pathname === "(\/api\/[^"]+)"/g;
+const documentedPattern = /\|\s*`?([A-Z]+)`?\s*\|\s*`(\/api\/[^`]+)`\s*\|/g;
+
+function collectMatches(pattern, source) {
+  return [...source.matchAll(pattern)]
+    .map((match) => `${match[1]} ${match[2]}`)
+    .sort();
+}
+
+const implemented = collectMatches(routePattern, serverSource);
+const readmeDocumented = collectMatches(documentedPattern, readme);
+const userGuideDocumented = collectMatches(documentedPattern, userGuide);
+
+function diffDocumentedRoutes(documented) {
+  return {
+    missingFromDoc: implemented.filter((route) => !documented.includes(route)),
+    missingFromServer: documented.filter((route) => !implemented.includes(route))
+  };
+}
+
+const readmeDiff = diffDocumentedRoutes(readmeDocumented);
+const userGuideDiff = diffDocumentedRoutes(userGuideDocumented);
+const requiredErrorDocSnippets = [
+  "Error responses keep a human-readable `error` string and add a machine-readable `code`",
+  "Confirmed preferences are global to the local app instance",
+  "suggestions carry project ownership",
+  "MEMORY_SUGGESTION_NOT_FOUND",
+  "MEMORY_SUGGESTION_NOT_PENDING",
+  "MEMORY_PROJECT_MISMATCH",
+  "UNKNOWN_MEMORY_PREFERENCE_KEY",
+  "UNKNOWN_MEMORY_PREFERENCE_VALUE",
+  "PROJECT_REQUIRED",
+  "PROJECT_NOT_FOUND",
+  "INVALID_GITHUB_REPO",
+  "GITHUB_IMPORT_FAILED",
+  "GITHUB_IMPORT_TIMEOUT",
+  "IMPORT_SOURCE_REQUIRED",
+  "IMPORT_INVALID_ZIP",
+  "IMPORT_TOO_LARGE",
+  "NO_SUPPORTED_FILES",
+  "REQUEST_BODY_TOO_LARGE",
+  "QUESTION_REQUIRED",
+  "ANSWER_NOT_FOUND",
+  "INVALID_FEEDBACK_TYPE",
+  "ROUTE_NOT_FOUND",
+  "Metrics ignore unknown feedback types"
+];
+const missingReadmeErrorDocs = requiredErrorDocSnippets.filter((snippet) => !readme.includes(snippet));
+
+if (
+  readmeDiff.missingFromDoc.length
+  || readmeDiff.missingFromServer.length
+  || userGuideDiff.missingFromDoc.length
+  || userGuideDiff.missingFromServer.length
+  || missingReadmeErrorDocs.length
+) {
+  console.error(JSON.stringify({
+    implemented,
+    readmeDocumented,
+    userGuideDocumented,
+    missingFromReadme: readmeDiff.missingFromDoc,
+    readmeOnlyRoutes: readmeDiff.missingFromServer,
+    missingFromUserGuide: userGuideDiff.missingFromDoc,
+    userGuideOnlyRoutes: userGuideDiff.missingFromServer,
+    missingReadmeErrorDocs
+  }, null, 2));
+  throw new Error("API documentation is out of sync with server routes.");
+}
+
+console.log(JSON.stringify({
+  ok: true,
+  readmeRoutes: readmeDocumented.length,
+  userGuideRoutes: userGuideDocumented.length,
+  errorDocSnippets: requiredErrorDocSnippets.length
+}, null, 2));

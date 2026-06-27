@@ -4,8 +4,8 @@ import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promis
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-const PORT = String(3600 + Math.floor(Math.random() * 1000));
-const BASE_URL = `http://127.0.0.1:${PORT}`;
+let PORT = "";
+let BASE_URL = "";
 const REQUEST_TIMEOUT_MS = 20_000;
 
 function assert(condition, message) {
@@ -92,6 +92,20 @@ async function closeServer(server) {
   await new Promise((resolve, reject) => {
     server.close((error) => (error ? reject(error) : resolve()));
   });
+}
+
+async function getFreePort() {
+  const server = http.createServer();
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      server.off("error", reject);
+      resolve();
+    });
+  });
+  const { port } = server.address();
+  await closeServer(server);
+  return String(port);
 }
 
 async function waitForServer(child, baseUrl = BASE_URL) {
@@ -269,7 +283,7 @@ function startFakeLlmServer() {
 async function runLlmSchemaFallbackSmoke() {
   const fakeLlm = await startFakeLlmServer();
   const dataDir = await mkdtemp(path.join(tmpdir(), "ai-pm-llm-smoke-"));
-  const port = String(4600 + Math.floor(Math.random() * 1000));
+  const port = await getFreePort();
   const baseUrl = `http://127.0.0.1:${port}`;
   const child = spawn(process.execPath, ["server.js"], {
     cwd: process.cwd(),
@@ -393,13 +407,28 @@ async function runLlmSchemaFallbackSmoke() {
     assert(timeoutResult.payload.harness.model_adapter.error_code === "LLM_TIMEOUT", "timeout should report LLM_TIMEOUT error code");
     assert(timeoutResult.payload.harness.fallback_used === true, "timeout should trigger deterministic fallback");
     assert(timeoutResult.payload.harness.fallback_reason.includes("timed out"), "timeout fallback reason should mention timeout");
+    const chatSchemaFallback = await requestTo(baseUrl, "/api/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        projectId,
+        question: "Where is order creation logic with chat schema validation?",
+        kind: "qa"
+      })
+    });
+    assert(chatSchemaFallback.payload.harness.runtime === "Direct Chat Harness", "chat endpoint should report Direct Chat Harness");
+    assert(chatSchemaFallback.payload.harness.model_adapter.llm_attempted === true, "chat harness should attempt LLM in API-key mode");
+    assert(chatSchemaFallback.payload.harness.model_adapter.llm_used === false, "invalid chat schema should not be used");
+    assert(chatSchemaFallback.payload.harness.model_adapter.error_code === "LLM_SCHEMA_INVALID", "invalid chat schema should report LLM_SCHEMA_INVALID");
+    assert(chatSchemaFallback.payload.harness.fallback_used === true, "invalid chat schema should fallback");
+    assert(chatSchemaFallback.payload.safety.status === "passed", "safe chat fallback should pass safety checks");
     return {
       fakeLlmRequests: fakeLlm.getRequestCount(),
       schemaErrors: result.payload.harness.model_adapter.schema_errors,
       missingCitationRisks: missingCitation.payload.safety.risk_types,
       sensitiveOutputRisks: sensitiveOutput.payload.safety.risk_types,
       uncitedImpactRisks: uncitedImpact.payload.safety.risk_types,
-      timeoutErrorCode: timeoutResult.payload.harness.model_adapter.error_code
+      timeoutErrorCode: timeoutResult.payload.harness.model_adapter.error_code,
+      chatSchemaErrorCode: chatSchemaFallback.payload.harness.model_adapter.error_code
     };
   } catch (error) {
     console.error(stdout);
@@ -415,7 +444,7 @@ async function runLlmSchemaFallbackSmoke() {
 async function runStorePathSmoke() {
   const rootDir = await mkdtemp(path.join(tmpdir(), "ai-pm-store-path-"));
   const storePath = path.join(rootDir, "nested", "custom-store.json");
-  const port = String(5600 + Math.floor(Math.random() * 1000));
+  const port = await getFreePort();
   const baseUrl = `http://127.0.0.1:${port}`;
   const child = spawn(process.execPath, ["server.js"], {
     cwd: process.cwd(),
@@ -460,7 +489,7 @@ async function runCorruptStoreBackupSmoke() {
   const storePath = path.join(rootDir, "nested", "store.json");
   await mkdir(path.dirname(storePath), { recursive: true });
   await writeFile(storePath, "{ invalid json");
-  const port = String(5700 + Math.floor(Math.random() * 1000));
+  const port = await getFreePort();
   const baseUrl = `http://127.0.0.1:${port}`;
   const child = spawn(process.execPath, ["server.js"], {
     cwd: process.cwd(),
@@ -503,6 +532,8 @@ async function runCorruptStoreBackupSmoke() {
 
 async function main() {
   const dataDir = await mkdtemp(path.join(tmpdir(), "ai-pm-smoke-"));
+  PORT = await getFreePort();
+  BASE_URL = `http://127.0.0.1:${PORT}`;
   const child = spawn(process.execPath, ["server.js"], {
     cwd: process.cwd(),
     env: {
@@ -744,6 +775,18 @@ async function main() {
     assert(remembered.payload.memory_used.summary.includes("detail=concise"), "concise detail preference was not used");
     assert(remembered.payload.open_questions.some((item) => item.includes("user-facing requirement")), "product manager preference did not influence open questions");
     assert(!remembered.payload.memory_suggestions.some((item) => item.key === "role" && item.value === "Product Manager"), "confirmed role preference was suggested again");
+    const rememberedChatImpact = await request("/api/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        projectId,
+        kind: "impact",
+        question: "Analyze the rollout impact for partially_refunded order status with the direct chat harness."
+      })
+    });
+    assert(rememberedChatImpact.payload?.memory_used?.used === true, "confirmed memory was not reported by direct chat harness");
+    assert(rememberedChatImpact.payload.memory_used.summary.includes("Product Manager"), "direct chat harness did not report role memory");
+    assert(rememberedChatImpact.payload.open_questions.some((item) => item.includes("user-facing requirement")), "direct chat impact did not apply product manager memory");
+    assert(rememberedChatImpact.payload.harness.runtime === "Direct Chat Harness", "direct chat impact did not report chat harness");
 
     const invalidForgetKey = await requestError("/api/memory/forget", {
       method: "POST",
@@ -929,6 +972,14 @@ async function main() {
     });
     assert(qa.kind === "qa", "qa endpoint returned wrong kind");
     assert((qa.payload?.related_files || []).length > 0, "qa answer missing related files");
+    assert(qa.payload?.harness?.runtime === "Direct Chat Harness", "qa endpoint missing chat harness");
+    assert(qa.payload.harness.model_mode === "offline retrieval", "offline qa should report retrieval mode");
+    assert(qa.payload.harness.model_adapter.llm_attempted === false, "offline qa should not attempt LLM");
+    assert(qa.payload.harness.fallback_used === true, "offline qa should report deterministic fallback");
+    assert(qa.payload.harness.fallback_reason.includes("OPENAI_API_KEY"), "offline qa fallback reason should mention missing API key");
+    assert(qa.payload.harness.schema_valid === true, "offline qa schema status should be valid");
+    assert(Array.isArray(qa.payload.trace) && qa.payload.trace.length === 4, "qa endpoint should expose 4 chat harness trace steps");
+    assert(qa.payload?.safety?.status === "passed", "safe qa request should pass safety checks");
 
     const evaluation = await request(`/api/evaluation?projectId=${encodeURIComponent(projectId)}`);
     assert(evaluation.metrics.agent_runs >= 8, "evaluation did not count agent runs");

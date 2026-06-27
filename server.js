@@ -584,16 +584,16 @@ function expandQueryTerms(query) {
   const terms = tokenize(query);
   const lower = query.toLowerCase();
   const expansions = [
-    [["登录", "认证", "用户"], ["auth", "login", "user", "jwt", "password"]],
-    [["订单", "下单", "创建订单"], ["order", "checkout", "createorder", "orderstatus"]],
-    [["支付", "付款"], ["payment", "charge", "paid", "gateway"]],
-    [["退款", "退货"], ["refund", "refunded", "refundservice"]],
-    [["优惠券", "折扣"], ["coupon", "discount", "validatecoupon"]],
-    [["状态", "字段"], ["status", "type", "model", "schema"]],
-    [["测试", "场景", "边界"], ["test", "spec", "scenario", "failure"]],
-    [["新人", "入门", "学习"], ["readme", "onboarding", "first", "read", "module"]],
-    [["接口", "路由"], ["api", "route", "controller", "endpoint"]],
-    [["影响", "修改", "新增"], ["impact", "change", "service", "model", "test"]]
+    [["auth", "login", "user", "jwt", "password", "认证", "登录", "用户"], ["auth", "login", "user", "jwt", "password"]],
+    [["order", "checkout", "createorder", "orderstatus", "订单", "下单", "结账"], ["order", "checkout", "createorder", "orderstatus"]],
+    [["payment", "charge", "paid", "gateway", "支付", "扣款"], ["payment", "charge", "paid", "gateway"]],
+    [["refund", "refunded", "refundservice", "退款", "退货"], ["refund", "refunded", "refundservice"]],
+    [["coupon", "discount", "validatecoupon", "优惠券", "折扣"], ["coupon", "discount", "validatecoupon"]],
+    [["status", "type", "model", "schema", "状态", "字段", "模型"], ["status", "type", "model", "schema"]],
+    [["test", "spec", "scenario", "failure", "测试", "用例", "失败"], ["test", "spec", "scenario", "failure"]],
+    [["readme", "onboarding", "first", "module", "新人", "入门", "模块"], ["readme", "onboarding", "first", "read", "module"]],
+    [["api", "route", "controller", "endpoint", "接口", "路由"], ["api", "route", "controller", "endpoint"]],
+    [["impact", "change", "service", "model", "test", "影响", "变更"], ["impact", "change", "service", "model", "test"]]
   ];
   expansions.forEach(([needles, words]) => {
     if (needles.some((needle) => lower.includes(needle))) terms.push(...words);
@@ -844,8 +844,8 @@ function relatedFilesFromChunks(chunks) {
 
 function inferQuestionType(question) {
   const lower = question.toLowerCase();
-  if (/impact|affect|change|add|modify|新增|修改|影响|状态|字段/.test(lower)) return "impact";
-  if (/onboard|学习|新人|first week|read first/.test(lower)) return "onboarding";
+  if (/impact|affect|change|add|modify|影响|变更|新增|修改|状态|字段/.test(lower)) return "impact";
+  if (/onboard|learning|first week|read first|新人|入门|学习/.test(lower)) return "onboarding";
   return "qa";
 }
 
@@ -1139,17 +1139,17 @@ function classifyChangeRequest(question) {
     ...(lower.match(/\/api\/[a-z0-9_/-]+/g) || [])
   ])].slice(0, 6);
   let change_type = "business_logic_change";
-  if (/status|状态|state/.test(lower)) change_type = "state_or_status_change";
-  if (/field|schema|model|字段|数据|表/.test(lower)) change_type = "data_model_change";
-  if (/api|endpoint|route|接口/.test(lower)) change_type = "api_contract_change";
-  if (/ui|page|component|页面|前端|展示/.test(lower)) change_type = "ui_behavior_change";
-  if (/test|qa|测试/.test(lower)) change_type = "test_scope_change";
+  if (/status|state|状态/.test(lower)) change_type = "state_or_status_change";
+  if (/field|schema|model|字段|数据|模型/.test(lower)) change_type = "data_model_change";
+  if (/api|endpoint|route|接口|路由/.test(lower)) change_type = "api_contract_change";
+  if (/ui|page|component|admin|页面|组件/.test(lower)) change_type = "ui_behavior_change";
+  if (/test|qa|测试|用例/.test(lower)) change_type = "test_scope_change";
 
   const risk_drivers = [
-    /status|状态|state/.test(lower) ? "state transitions" : null,
+    /status|state|状态/.test(lower) ? "state transitions" : null,
     /payment|refund|order|支付|退款|订单/.test(lower) ? "money or order workflow" : null,
-    /api|接口|schema|field|字段/.test(lower) ? "contract or data shape" : null,
-    /ui|页面|admin|后台/.test(lower) ? "presentation and filtering" : null
+    /api|schema|field|接口|字段/.test(lower) ? "contract or data shape" : null,
+    /ui|admin|page|component|页面|组件/.test(lower) ? "presentation and filtering" : null
   ].filter(Boolean);
 
   return {
@@ -1263,23 +1263,26 @@ function validateTraceToolUse(trace = []) {
 
 function scanInputSafety(question) {
   const lower = question.toLowerCase();
+  const promptInjectionPattern = /(ignore|bypass|override).{0,40}(system|developer|instruction|rules|previous)|jailbreak|忽略.{0,20}(系统|指令|规则)|绕过.{0,20}(系统|指令|规则)/i;
+  const secretRequestPattern = /(api[_ -]?key|secret|token|password|credential|泄露|密钥|令牌|密码|凭证)/i;
+  const toolPermissionPattern = /(delete|write|commit|push|execute|run shell|rm -rf|删除|写入|提交|推送|执行命令)/i;
   const checks = [
     {
       name: "Prompt injection",
       risk_type: "prompt_injection",
-      passed: !/(ignore|bypass|override).{0,40}(system|developer|instruction|rules|previous)|jailbreak|忽略.{0,20}(系统|指令|规则)/i.test(question),
+      passed: !promptInjectionPattern.test(question),
       detail: "Detects attempts to override system or developer instructions."
     },
     {
       name: "Secret request",
       risk_type: "secret_request",
-      passed: !/(api[_ -]?key|secret|token|password|credential|泄露|密钥|令牌)/i.test(question),
+      passed: !secretRequestPattern.test(question),
       detail: "Detects requests to reveal credentials or hidden configuration."
     },
     {
       name: "Tool permissions",
       risk_type: "tool_permission",
-      passed: !/(delete|write|commit|push|execute|run shell|rm -rf|删除|提交|执行命令)/i.test(lower),
+      passed: !toolPermissionPattern.test(lower),
       detail: "Agent tools are restricted to read-only repository analysis."
     }
   ];
@@ -1292,8 +1295,9 @@ function scanInputSafety(question) {
 }
 
 function scanRetrievedSafety(chunks) {
+  const promptInjectionPattern = /(ignore|bypass|override).{0,40}(system|developer|instruction|rules|previous)|jailbreak|忽略.{0,20}(系统|指令|规则)|绕过.{0,20}(系统|指令|规则)/i;
   const injectionFiles = chunks.filter((chunk) => {
-    return /(ignore|bypass|override).{0,40}(system|developer|instruction|rules|previous)|jailbreak|忽略.{0,20}(系统|指令|规则)/i.test(chunk.content);
+    return promptInjectionPattern.test(chunk.content);
   }).map((chunk) => chunk.file_path);
   const sensitiveFiles = chunks.filter((chunk) => SENSITIVE_VALUE_PATTERN.test(chunk.content)).map((chunk) => chunk.file_path);
   const riskTypes = [
@@ -1342,7 +1346,9 @@ function scanOutputSafety(project, payload) {
     ...(payload.impact_areas?.flatMap((area) => area.files || []) || [])
   ].filter(Boolean);
   const uncertainty = String(payload.uncertainty || "");
-  const overconfident = impactRefs.length === 0 && !/high|not sure|insufficient|uncertain|不确定/i.test(uncertainty);
+  const hasImpactAreas = Array.isArray(payload.impact_areas) && payload.impact_areas.length > 0;
+  const hasRequiredCitations = hasImpactAreas ? impactRefs.length > 0 : refs.length > 0;
+  const overconfident = !hasRequiredCitations && !/high|not sure|insufficient|uncertain|不确定/i.test(uncertainty);
   const checks = [
     {
       name: "Citation coverage",
@@ -1398,27 +1404,27 @@ function inferPreferenceSignals(question) {
   if (/\b(pm|product manager|prd|requirement)\b|产品|需求/.test(lower)) {
     signals.push({ key: "role", value: "Product Manager", label: "Product manager perspective", confidence: "medium" });
   }
-  if (/\bqa\b|test|测试|回归|用例/.test(lower)) {
+  if (/\bqa\b|test|测试|质量/.test(lower)) {
     signals.push({ key: "role", value: "QA", label: "QA perspective", confidence: "medium" });
     signals.push({ key: "focusAreas", value: "testing", label: "Testing focus", confidence: "medium" });
   }
-  if (/backend|后端|api|service|database/.test(lower)) {
+  if (/backend|api|service|database|后端/.test(lower)) {
     signals.push({ key: "role", value: "Backend Engineer", label: "Backend perspective", confidence: "medium" });
   }
-  if (/frontend|前端|ui|page|component/.test(lower)) {
+  if (/frontend|ui|page|component|前端|页面|组件/.test(lower)) {
     signals.push({ key: "role", value: "Frontend Engineer", label: "Frontend perspective", confidence: "medium" });
   }
-  if (/简洁|简短|short|brief|concise/.test(lower)) {
+  if (/short|brief|concise|简洁|简短/.test(lower)) {
     signals.push({ key: "detailLevel", value: "concise", label: "Concise answers", confidence: "high" });
   }
-  if (/详细|细节|deep|detailed/.test(lower)) {
+  if (/deep|detailed|详细|深入/.test(lower)) {
     signals.push({ key: "detailLevel", value: "detailed", label: "Detailed answers", confidence: "medium" });
   }
-  if (/risk|风险|影响|impact/.test(lower)) {
+  if (/risk|impact|风险|影响/.test(lower)) {
     signals.push({ key: "focusAreas", value: "risk", label: "Risk focus", confidence: "medium" });
     signals.push({ key: "taskTypes", value: "impact_analysis", label: "Impact analysis tasks", confidence: "medium" });
   }
-  if (/安全|security|prompt injection|guardrail/.test(lower)) {
+  if (/security|prompt injection|guardrail|安全|护栏/.test(lower)) {
     signals.push({ key: "focusAreas", value: "safety", label: "AI safety focus", confidence: "medium" });
   }
   return signals;
@@ -1539,6 +1545,42 @@ function validateImpactPayload(payload) {
   return { valid: errors.length === 0, errors };
 }
 
+function validateQaPayload(payload) {
+  const errors = [];
+  if (!payload || typeof payload !== "object") {
+    return { valid: false, errors: ["payload must be an object"] };
+  }
+  if (typeof payload.answer !== "string" || !payload.answer.trim()) {
+    errors.push("answer must be a non-empty string");
+  }
+  if (!Array.isArray(payload.key_points)) {
+    errors.push("key_points must be an array");
+  }
+  if (!Array.isArray(payload.related_files)) {
+    errors.push("related_files must be an array");
+  } else {
+    payload.related_files.forEach((file, index) => {
+      if (!file || typeof file !== "object") {
+        errors.push(`related_files[${index}] must be an object`);
+        return;
+      }
+      if (typeof file.file_path !== "string" || !file.file_path.trim()) {
+        errors.push(`related_files[${index}].file_path must be a non-empty string`);
+      }
+      if (typeof file.reason !== "string" || !file.reason.trim()) {
+        errors.push(`related_files[${index}].reason must be a non-empty string`);
+      }
+    });
+  }
+  if (typeof payload.uncertainty !== "string" || !payload.uncertainty.trim()) {
+    errors.push("uncertainty must be a non-empty string");
+  }
+  if (!Array.isArray(payload.suggested_next_questions)) {
+    errors.push("suggested_next_questions must be an array");
+  }
+  return { valid: errors.length === 0, errors };
+}
+
 async function runModelAdapter({ question, chunks, kind, project, validatePayload }) {
   const modelCall = await maybeCallOpenAI({ question, chunks, kind, project });
   const llmPayload = modelCall.payload;
@@ -1616,6 +1658,55 @@ function buildAgentHarnessReport({ started, trace, harnessEvents, errors }) {
     schema_valid: modelEvent.schema_valid !== false && errors.length === 0,
     budgets: AGENT_BUDGETS,
     budget_status,
+    tool_registry: summarizeToolRegistry(),
+    errors: harnessErrors
+  };
+}
+
+function buildChatHarnessReport({ started, trace, modelEvent, errors }) {
+  const durationMs = Date.now() - started;
+  const harnessErrors = [
+    ...errors,
+    modelEvent?.error,
+    ...(modelEvent?.schema_errors || []).map((schemaError) => `model_adapter schema: ${schemaError}`)
+  ].filter(Boolean);
+  const fallbackUsed = !!modelEvent?.fallback_used || errors.length > 0;
+  const fallbackReason = errors[0]
+    || modelEvent?.error
+    || (!process.env.OPENAI_API_KEY ? "OPENAI_API_KEY is not configured; deterministic retrieval fallback used." : null);
+  return {
+    runtime: "Direct Chat Harness",
+    model_mode: process.env.OPENAI_API_KEY ? "ai-enhanced" : "offline retrieval",
+    model_provider: process.env.OPENAI_API_KEY ? resolveLlmProvider() : "deterministic",
+    model_adapter: {
+      name: modelEvent?.adapter || "openai-compatible-chat-completions",
+      provider: modelEvent?.provider || (process.env.OPENAI_API_KEY ? resolveLlmProvider() : "deterministic"),
+      model: modelEvent?.model || (process.env.OPENAI_API_KEY ? resolveLlmModel() : "offline-retrieval"),
+      llm_attempted: !!modelEvent?.llm_attempted,
+      llm_used: !!modelEvent?.llm_used,
+      schema_errors: modelEvent?.schema_errors || [],
+      error: modelEvent?.error || null,
+      error_code: modelEvent?.error_code || null,
+      http_status: modelEvent?.http_status || null,
+      duration_ms: modelEvent?.duration_ms || 0
+    },
+    steps_executed: trace.length,
+    duration_ms: durationMs,
+    fallback_used: fallbackUsed,
+    fallback_reason: fallbackUsed ? fallbackReason : null,
+    schema_valid: modelEvent?.schema_valid !== false && errors.length === 0,
+    budgets: {
+      max_steps: 4,
+      timeout_ms: LLM_REQUEST_TIMEOUT_MS
+    },
+    budget_status: {
+      steps_executed: trace.length,
+      max_steps: 4,
+      step_budget_exceeded: trace.length > 4,
+      timeout_ms: LLM_REQUEST_TIMEOUT_MS,
+      duration_ms: durationMs,
+      timeout_exceeded: durationMs > LLM_REQUEST_TIMEOUT_MS
+    },
     tool_registry: summarizeToolRegistry(),
     errors: harnessErrors
   };
@@ -2023,7 +2114,7 @@ function computeMetrics(store, projectId) {
   const uncertain = answers.filter((item) => {
     const u = item.payload?.uncertainty;
     if (u === true || u === "true") return true;
-    return /high|not sure|insufficient|不确定/i.test(String(u || ""));
+    return /high|not sure|insufficient|uncertain|不确定/i.test(String(u || ""));
   }).length;
   const counts = feedback.reduce((acc, item) => {
     acc[item.type] = (acc[item.type] || 0) + 1;
@@ -2188,17 +2279,66 @@ async function handleApiUnlocked(req, res, pathname) {
       const kind = body.kind || inferQuestionType(question);
       const started = Date.now();
       const chunks = retrieveChunks(project, question, kind === "impact" ? 10 : 8);
-      const modelCall = await maybeCallOpenAI({ question, chunks, kind, project });
-      const llmPayload = modelCall.payload;
-      const llmUsed = !!llmPayload;
-      const payload = llmPayload || (kind === "impact"
+      const inputSafety = scanInputSafety(question);
+      const retrievedSafety = scanRetrievedSafety(chunks);
+      const preferences = store.userPreferences || createEmptyPreferences();
+      const memorySummary = summarizePreferences(preferences);
+      const validatePayload = kind === "impact" ? validateImpactPayload : validateQaPayload;
+      const modelResult = await runModelAdapter({ question, chunks, kind, project, validatePayload });
+      let payload = modelResult.payload || (kind === "impact"
         ? generateImpactAnswer(question, chunks, project)
         : generateQaAnswer(question, chunks));
-      payload.llm_used = llmUsed;
+      if (kind === "impact") {
+        payload = applyPreferencesToImpact(payload, preferences);
+      }
+      payload.memory_used = { used: memorySummary !== "none", summary: memorySummary };
+      payload.llm_used = !!modelResult.event.llm_used;
       // Normalize uncertainty to string for consistent frontend + metrics
       if (payload.uncertainty === true || payload.uncertainty === false) {
         payload.uncertainty = payload.uncertainty ? "High. The available repository context may be insufficient." : "Low to medium.";
       }
+      const outputSafety = scanOutputSafety(project, payload);
+      const trace = [
+        makeTraceStep({
+          step: "1. Input safety scan",
+          tool: "safety.scan_input",
+          purpose: "Check the user request for prompt injection, secret requests, or write-tool intent.",
+          input: question,
+          output: { status: inputSafety.status, risk_types: inputSafety.risk_types }
+        }),
+        makeTraceStep({
+          step: "2. Retrieve repository context",
+          tool: "retriever_agent.retrieve_repository_chunks",
+          purpose: "Find read-only repository evidence for the answer.",
+          input: { kind, question },
+          output: { chunks: chunks.length, safety: retrievedSafety.status },
+          citations: relatedFilesFromChunks(chunks).map((file) => file.file_path)
+        }),
+        makeTraceStep({
+          step: "3. Compose answer",
+          tool: "synthesizer_agent.compose_structured_answer",
+          purpose: "Use schema-checked model output when valid, otherwise deterministic fallback.",
+          input: { kind, llm_attempted: modelResult.event.llm_attempted },
+          output: { llm_used: modelResult.event.llm_used, fallback_used: modelResult.event.fallback_used }
+        }),
+        makeTraceStep({
+          step: "4. Output safety scan",
+          tool: "safety_guardrail_agent.validate_output",
+          purpose: "Validate citations, sensitive output, and overconfidence before returning.",
+          input: { required: "Cited files must exist and secret-like values should not be echoed." },
+          output: { status: outputSafety.status, risk_types: outputSafety.risk_types }
+        })
+      ];
+      const toolSafety = validateTraceToolUse(trace);
+      const safety = mergeSafetyReports(inputSafety, retrievedSafety, outputSafety, toolSafety);
+      payload.trace = trace;
+      payload.safety = safety;
+      payload.harness = buildChatHarnessReport({
+        started,
+        trace,
+        modelEvent: modelResult.event,
+        errors: []
+      });
       const questionRecord = {
         id: crypto.randomUUID(),
         projectId: project.id,

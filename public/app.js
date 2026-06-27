@@ -6,6 +6,7 @@ const state = {
   progress: [],
   messages: [],
   metrics: null,
+  memory: null,
   llmStatus: null,
   lang: localStorage.getItem("aido-lang") || "en"
 };
@@ -226,17 +227,17 @@ const copy = {
     brand: "研发知识助手",
     nav: { landing: "产品", import: "导入", overview: "总览", chat: "Copilot", dashboard: "评估" },
     home: {
-      title: "有依据的代码库入门助手。",
-      subtitle: "导入仓库，查看项目地图，提出有引用的问题，分析改动影响，并衡量 AI 回答质量。",
+      title: "有证据的代码库入门。",
+      subtitle: "导入仓库，查看项目地图，提出有引用的问题，分析变更影响，并衡量 AI 回答质量。",
       launch: "启动示例工作区",
       importRepo: "导入仓库",
       workspace: "工作区",
       filesParsed: "已解析文件",
-      chunksIndexed: "已索引分块",
+      chunksIndexed: "已索引片段",
       citationCoverage: "引用覆盖率",
       evidence: "证据片段",
       workflow: "MVP 流程",
-      workflowTitle: "围绕研发入门场景设计，而不是普通聊天。",
+      workflowTitle: "围绕研发入门任务设计，而不是普通聊天。",
       users: [
         ["新入职工程师", "快速找到入口文件、核心流程和第一周阅读重点。"],
         ["技术 PM", "把代码结构转成业务功能、接口依赖和需求风险。"],
@@ -322,7 +323,7 @@ const copy = {
       qaEyebrow: "代码库问答",
       qaTitle: "带引用地提问",
       qaHelp: "适合查找代码入口、解释流程、发现模块和生成有来源的答案。",
-      impactEyebrow: "改动智能分析",
+      impactEyebrow: "变更智能分析",
       impactTitle: "改代码前先分析影响",
       impactHelp: "适合新增状态、接口调整、字段变更、测试回归和风险评估。",
       agentEyebrow: "Agentic 工作流",
@@ -513,9 +514,19 @@ async function checkHealth() {
   }
 }
 
+async function refreshMemory(shouldRender = true) {
+  if (!state.project) {
+    state.memory = null;
+    return;
+  }
+  const payload = await api(`/api/memory?projectId=${encodeURIComponent(state.project.id)}`);
+  state.memory = payload;
+  if (shouldRender) render();
+}
+
 function setPage(page) {
   state.page = page;
-  if (page === "chat") checkHealth().then(render);
+  if (page === "chat") Promise.all([checkHealth(), refreshMemory(false)]).then(render);
   if (page === "dashboard" && state.project) refreshMetrics();
   render();
 }
@@ -758,9 +769,9 @@ function llmModeBadge() {
   const configured = state.llmStatus?.llm?.configured;
   const provider = state.llmStatus?.llm?.provider || "";
   if (configured) {
-    return `<span class="llm-badge active" title="LLM: ${escapeHtml(provider)} — ${escapeHtml(state.llmStatus?.llm?.model || "")}">⚡ ${escapeHtml(c.chat.modeAI)}</span>`;
+    return `<span class="llm-badge active" title="LLM: ${escapeHtml(provider)} - ${escapeHtml(state.llmStatus?.llm?.model || "")}">AI ${escapeHtml(c.chat.modeAI)}</span>`;
   }
-  return `<span class="llm-badge fallback" title="Set OPENAI_API_KEY to enable AI mode">📚 ${escapeHtml(c.chat.modeFallback)}</span>`;
+  return `<span class="llm-badge fallback" title="Set OPENAI_API_KEY to enable AI mode">OFF ${escapeHtml(c.chat.modeFallback)}</span>`;
 }
 
 function chatPage() {
@@ -833,8 +844,44 @@ function chatPage() {
           <div><strong>${metricValue(state.metrics?.citation_coverage)}%</strong><span>${c.home.citationCoverage}</span></div>
           <div><strong>${metricValue(state.metrics?.helpful_rate)}%</strong><span>${c.chat.helpfulRate}</span></div>
         </div>
+        ${renderMemoryManager()}
       </aside>
     </main>
+  `;
+}
+
+function memoryPreferenceRows(preferences = {}) {
+  const rows = [];
+  if (preferences.role) rows.push(["role", preferences.role]);
+  if (preferences.language) rows.push(["language", preferences.language]);
+  if (preferences.detailLevel) rows.push(["detailLevel", preferences.detailLevel]);
+  (preferences.focusAreas || []).forEach((value) => rows.push(["focusAreas", value]));
+  (preferences.taskTypes || []).forEach((value) => rows.push(["taskTypes", value]));
+  return rows;
+}
+
+function renderMemoryManager() {
+  const title = state.lang === "zh" ? "偏好记忆" : "Preference memory";
+  const empty = state.lang === "zh" ? "暂无已保存偏好" : "No saved preferences";
+  const clear = state.lang === "zh" ? "清空" : "Clear all";
+  const remove = state.lang === "zh" ? "删除" : "Remove";
+  const preferences = state.memory?.preferences || {};
+  const rows = memoryPreferenceRows(preferences);
+  return html`
+    <div class="inspector-section memory-manager">
+      <h3>${title}</h3>
+      ${rows.length ? `
+        <div class="memory-preferences">
+          ${rows.map(([key, value]) => `
+            <div>
+              <span><strong>${escapeHtml(key)}</strong>${escapeHtml(String(value))}</span>
+              <button data-memory-forget-key="${escapeHtml(key)}" data-memory-forget-value="${escapeHtml(String(value))}">${remove}</button>
+            </div>
+          `).join("")}
+        </div>
+        <button class="secondary memory-clear" data-memory-forget-all="true">${clear}</button>
+      ` : `<p class="muted">${empty}</p>`}
+    </div>
   `;
 }
 
@@ -877,7 +924,7 @@ function emptyChatState(kind) {
   const c = t();
   const items = kind === "agent"
     ? state.lang === "zh"
-      ? ["新增订单状态 partially_refunded，并展示 agent trace。", "修改支付失败逻辑，Agent 会怎么找影响范围？", "用 Agent 分析订单状态依赖。"]
+      ? ["新增订单状态 partially_refunded，并展示 agent trace。", "修改支付失败逻辑，Agent 会怎样找影响范围？", "用 Agent 分析订单状态依赖。"]
       : ["Add partially_refunded to order status and show the agent trace.", "Change payment failure handling and show the agent steps.", "Use the agent to analyze order status dependencies."]
     : kind === "impact"
     ? state.lang === "zh"
@@ -952,9 +999,10 @@ function renderMessage(message) {
       <div class="answer">
         <div class="answer-meta">
           ${payload.llm_used
-            ? `<span class="llm-source ai">⚡ ${escapeHtml(c.chat.modeAI)}</span>`
-            : `<span class="llm-source fallback">📚 ${escapeHtml(c.chat.modeFallback)}</span>`}
+            ? `<span class="llm-source ai">AI ${escapeHtml(c.chat.modeAI)}</span>`
+            : `<span class="llm-source fallback">OFF ${escapeHtml(c.chat.modeFallback)}</span>`}
         </div>
+        ${renderOptionalRuntimeStatus(payload)}
         <h3>${c.chat.answer}</h3>
         <p>${escapeHtml(payload.answer)}</p>
         <h3>${c.chat.keyPoints}</h3>
@@ -1022,6 +1070,10 @@ function renderRuntimeStatus(payload) {
   `;
 }
 
+function renderOptionalRuntimeStatus(payload) {
+  return payload?.harness || payload?.safety ? renderRuntimeStatus(payload) : "";
+}
+
 function renderMemorySuggestions(suggestions = []) {
   const c = t();
   const visible = suggestions.slice(0, 3);
@@ -1063,6 +1115,7 @@ function renderAgentImpactMessage(message) {
 
         ${renderRuntimeStatus(payload)}
 
+        ${renderOptionalRuntimeStatus(payload)}
         <h3>${c.chat.impactSummary}</h3>
         <p>${escapeHtml(payload.summary)}</p>
 
@@ -1334,9 +1387,11 @@ async function importRepository({ sample = false } = {}) {
     state.project = payload.project;
     state.projects.push(payload.project);
     state.messages = [];
+    state.memory = null;
     state.progress.push("Ready");
     state.page = "overview";
     await refreshMetrics(false);
+    await refreshMemory(false);
     render();
   } catch (error) {
     showError(error);
@@ -1380,6 +1435,7 @@ async function ask(kind = "qa", questionOverride = "") {
       payload: payload.payload
     });
     await refreshMetrics(false);
+    await refreshMemory(false);
     render();
   } catch (error) {
     showError(error);
@@ -1412,6 +1468,7 @@ async function runAgentImpact(questionOverride = "") {
       payload: payload.payload
     });
     await refreshMetrics(false);
+    await refreshMemory(false);
     render();
   } catch (error) {
     showError(error);
@@ -1476,6 +1533,28 @@ async function handleMemorySuggestion(suggestionId, action) {
       };
     });
     await refreshMetrics(false);
+    await refreshMemory(false);
+    render();
+  } catch (error) {
+    showError(error);
+  }
+}
+
+async function forgetMemoryPreference(key, value) {
+  try {
+    const body = key
+      ? { key, value }
+      : {};
+    const payload = await api("/api/memory/forget", {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+    state.memory = {
+      preferences: payload.preferences,
+      suggestions: payload.suggestions || state.memory?.suggestions || []
+    };
+    await refreshMetrics(false);
+    await refreshMemory(false);
     render();
   } catch (error) {
     showError(error);
@@ -1547,9 +1626,22 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const forgetAllMemory = event.target.closest("[data-memory-forget-all]");
+  if (forgetAllMemory) {
+    forgetMemoryPreference();
+    return;
+  }
+
+  const forgetMemory = event.target.closest("[data-memory-forget-key]");
+  if (forgetMemory) {
+    forgetMemoryPreference(forgetMemory.dataset.memoryForgetKey, forgetMemory.dataset.memoryForgetValue);
+    return;
+  }
+
   const memoryButton = event.target.closest("[data-memory-action]");
   if (memoryButton) {
     handleMemorySuggestion(memoryButton.dataset.suggestion, memoryButton.dataset.memoryAction);
+    return;
   }
 });
 

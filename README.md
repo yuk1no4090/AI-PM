@@ -24,6 +24,10 @@ Static check scripts use the `scripts/check-*.js` naming convention. `scripts/st
 
 The smoke test starts the server on temporary ports with isolated temporary data stores, then verifies custom `STORE_PATH` creation, corrupt store backup, sample import, LangGraph agent execution, memory confirmation/forget, Chinese memory suggestions, safety guardrails, Chinese prompt-injection and secret-request guardrails, tool-permission guardrails, retrieved-context prompt-injection handling, retrieved sensitive content handling, Q&A, evaluation metrics, API-key mode fallback when a fake OpenAI-compatible model returns schema-invalid JSON, missing-citation guardrails when the fake model cites a nonexistent file, and sensitive-output guardrails when the fake model emits secret-like text. Smoke requests use explicit timeouts and wait for spawned servers to exit during cleanup. Use `npm run test:smoke` to run only the server-backed smoke test.
 
+GitHub Actions runs `npm ci` and `npm test` on pushes to `main` and pull requests.
+
+The project targets Node.js 20. Local Node version managers can read `.nvmrc`; CI uses the same file.
+
 ## Runtime Configuration
 
 | Variable | Default | Purpose |
@@ -73,10 +77,10 @@ Without an API key, the app falls back to a deterministic retrieval-based answer
 
 - Repository import from public GitHub URL, ZIP upload, or built-in sample repository.
 - Project overview with inferred stack, directory tree, core modules, README summary, and recommended first reads.
-- Repository Q&A with related files, uncertainty, suggested next questions, and feedback buttons.
+- Repository Q&A with related files, uncertainty, suggested next questions, feedback buttons, lightweight harness metadata, and safety status.
 - Impact analysis with impacted modules, risk level, testing suggestions, and open questions.
 - Agent Workflow tab backed by a LangGraph StateGraph with classifier, retriever, context expansion, impact analysis, QA planning, memory, safety guardrails, and structured synthesis.
-- User preference memory suggestions that require explicit confirmation before being saved. Confirmed preferences are global to the local app instance; suggestions carry project ownership so confirmation/ignore actions can verify the active project. Ignored suggestions suppress the same key/value suggestion from being repeated.
+- User preference memory suggestions that require explicit confirmation before being saved. Confirmed preferences are global to the local app instance; suggestions carry project ownership so confirmation/ignore actions can verify the active project. Ignored suggestions suppress the same key/value suggestion from being repeated. The Copilot inspector includes a lightweight preference memory manager for viewing, removing one preference value, or clearing all preferences.
 - Application-level AI safety checks for prompt injection, secret requests, read-only tool boundaries, retrieved sensitive content, citation validation, uncited impact areas, sensitive output, and overconfidence.
 - Evaluation dashboard with total questions, agent runs, helpful rate, citation coverage, uncertainty rate, negative feedback, high-risk questions, guardrail hits, memory confirmations, fallback runs, and recent feedback.
 
@@ -96,7 +100,7 @@ input safety
   -> structured synthesizer
 ```
 
-The `modelAdapter` boundary uses an OpenAI-compatible chat completions call when configured and otherwise reports deterministic offline retrieval. LLM transport failures, timeouts, HTTP errors, invalid JSON, and schema errors are reported through `harness.model_adapter` before the deterministic fallback is used. The `agentHarness` boundary records runtime metadata for each agent run: model mode, provider, adapter, executed steps, duration, fallback status, fallback reason, schema status, budgets, budget status, read-only tool registry, and errors. Repository files are treated as untrusted evidence; retrieved text is never promoted into system instructions. Sensitive-looking values are redacted before repository context is sent to a model.
+The `modelAdapter` boundary uses an OpenAI-compatible chat completions call when configured and otherwise reports deterministic offline retrieval. LLM transport failures, timeouts, HTTP errors, invalid JSON, and schema errors are reported through `harness.model_adapter` before the deterministic fallback is used. The `agentHarness` boundary records runtime metadata for each agent run: model mode, provider, adapter, executed steps, duration, fallback status, fallback reason, schema status, budgets, budget status, read-only tool registry, and errors. `/api/chat` uses a lighter `Direct Chat Harness` with the same model adapter, schema validation, trace, fallback metadata, `memory_used`, and input/retrieval/output safety reports. Repository files are treated as untrusted evidence; retrieved text is never promoted into system instructions. Sensitive-looking values are redacted before repository context is sent to a model.
 
 ## API Surface
 
@@ -105,7 +109,7 @@ The `modelAdapter` boundary uses an OpenAI-compatible chat completions call when
 | `GET` | `/api/health` | Server and LLM configuration status. |
 | `GET` | `/api/projects` | List imported projects without chunk bodies. |
 | `POST` | `/api/import` | Import sample, public GitHub repository, or ZIP upload. |
-| `POST` | `/api/chat` | Repository Q&A or standard impact analysis. |
+| `POST` | `/api/chat` | Repository Q&A or standard impact analysis with lightweight harness and safety metadata. |
 | `POST` | `/api/agent-impact` | LangGraph multi-agent impact workflow. |
 | `POST` | `/api/onboarding` | Generate role-based onboarding plan. |
 | `POST` | `/api/feedback` | Record answer feedback. |

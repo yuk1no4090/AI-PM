@@ -1601,6 +1601,59 @@ code {
   text-transform: uppercase;
 }
 
+.memory-manager {
+  display: grid;
+  gap: 12px;
+}
+
+.memory-preferences {
+  display: grid;
+  gap: 8px;
+}
+
+.memory-preferences > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 8px;
+}
+
+.memory-preferences span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.memory-preferences strong {
+  color: var(--ink);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.memory-preferences button,
+.memory-clear {
+  min-height: 30px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  padding: 0 10px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.memory-preferences button:hover,
+.memory-clear:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 /* ---- Trace Steps ---- */
 .trace-step {
   display: grid;

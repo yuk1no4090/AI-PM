@@ -27,6 +27,8 @@ input_safety
 
 Each node appends trace metadata so the UI can show the agent path instead of hiding the workflow.
 
+`/api/chat` is not a LangGraph workflow. It uses a lighter `Direct Chat Harness` that reuses the same model adapter, schema validation, trace shape, deterministic fallback, confirmed `memory_used` reporting, read-only tool policy, and input/retrieval/output safety reports. This keeps the existing chat API compatible while making ordinary Q&A and standard impact analysis observable through the same harness fields.
+
 ## Memory Boundary
 
 Confirmed memory is stored in `data/store.json` under `userPreferences`. Confirmed preference memory is global for the local app instance, not project-scoped. Memory suggestions carry `projectId` so the UI and API can verify which project produced the suggestion before confirmation or ignore actions.
@@ -44,6 +46,8 @@ Supported preference fields:
 - `taskTypes`
 
 Memory suggestions are stored separately under `memorySuggestions`. The system may suggest memory from recent usage, but only `POST /api/memory/confirm` writes the value into long-lived preferences. `POST /api/memory/forget` can ignore one pending suggestion, clear one known preference key, or clear all preferences.
+
+The Copilot inspector uses `GET /api/memory` plus `POST /api/memory/forget` as a lightweight memory manager. It shows confirmed preferences and lets the user remove one key/value pair or clear all preferences without creating a separate page.
 
 Suggestion records are normalized on store load/save so missing ids, timestamps, confidence values, and invalid statuses cannot destabilize the UI or metrics. Only pending suggestions can be confirmed or ignored. Confirm and forget requests may include `projectId`; when supplied, the suggestion must belong to that project or the request is rejected. Unknown preference keys are rejected instead of falling back to full memory deletion. Unknown preference values are rejected instead of writing arbitrary values into long-lived preferences. Ignored suggestions suppress the same key/value suggestion from being repeated. Selective forget clears one preference key while preserving the rest of the confirmed preference memory. Unsafe input does not create new memory suggestions; existing confirmed preferences may still be applied.
 
@@ -64,7 +68,9 @@ If no API key is configured, the model adapter reports deterministic offline ret
 
 ## agentHarness
 
-`buildAgentHarnessReport()` creates the public harness payload.
+`buildAgentHarnessReport()` creates the public harness payload for `/api/agent-impact`.
+
+`buildChatHarnessReport()` creates the equivalent lightweight payload for `/api/chat`.
 
 The harness reports:
 
@@ -83,6 +89,8 @@ The harness reports:
 - errors
 
 `withWorkflowTimeout()` enforces the graph timeout. Timeout failures use the same deterministic fallback path as other workflow failures.
+
+`LLM_REQUEST_TIMEOUT_MS` controls individual model call timeouts for both the LangGraph workflow and the direct chat harness.
 
 ## Tool Policy
 

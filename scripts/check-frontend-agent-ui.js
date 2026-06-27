@@ -33,11 +33,26 @@ const missingRuntimeSnippets = requiredRuntimeSnippets.filter((snippet) => {
   return !runtimeBody.includes(snippet);
 });
 
+const requiredChatRuntimeSnippets = [
+  "function renderOptionalRuntimeStatus",
+  "renderOptionalRuntimeStatus(payload)"
+];
+
+const missingChatRuntimeSnippets = requiredChatRuntimeSnippets.filter((snippet) => {
+  return !appSource.includes(snippet);
+});
+
 const requiredMemoryActionSnippets = [
   'data-memory-action="confirm"',
   'data-memory-action="ignore"',
+  'data-memory-forget-key',
+  'data-memory-forget-all',
   "/api/memory/confirm",
   "/api/memory/forget",
+  "/api/memory?projectId=",
+  "function refreshMemory",
+  "function renderMemoryManager",
+  "function forgetMemoryPreference",
   "JSON.stringify({ suggestionId, projectId: state.project?.id })",
   "const visible = suggestions.slice(0, 3)",
   "item.status === \"pending\"",
@@ -57,7 +72,10 @@ const requiredStyleSnippets = [
   ".runtime-status",
   ".memory-suggestions",
   ".memory-actions",
-  ".memory-state"
+  ".memory-state",
+  ".memory-manager",
+  ".memory-preferences",
+  ".memory-clear"
 ];
 
 const staleFrontendTerms = [
@@ -73,12 +91,14 @@ const missingStyleSnippets = requiredStyleSnippets.filter((snippet) => {
 
 if (
   missingRuntimeSnippets.length
+  || missingChatRuntimeSnippets.length
   || missingMemoryActionSnippets.length
   || missingStyleSnippets.length
   || staleFrontendTerms.length
 ) {
   console.error(JSON.stringify({
     missingRuntimeSnippets,
+    missingChatRuntimeSnippets,
     missingMemoryActionSnippets,
     missingStyleSnippets,
     staleFrontendTerms
@@ -89,6 +109,7 @@ if (
 console.log(JSON.stringify({
   ok: true,
   runtimeSnippets: requiredRuntimeSnippets.length,
+  chatRuntimeSnippets: requiredChatRuntimeSnippets.length,
   memoryActionSnippets: requiredMemoryActionSnippets.length,
   styleSnippets: requiredStyleSnippets.length
 }, null, 2));

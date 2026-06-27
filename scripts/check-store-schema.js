@@ -80,7 +80,7 @@ const requiredMemoryEndpointSnippets = [
   "产品|需求",
   "简洁|简短",
   "风险|影响",
-  "安全|security",
+  "security|prompt injection|guardrail|安全|护栏",
   "MEMORY_PREFERENCE_KEYS.has(suggestion.key)",
   "MEMORY_PREFERENCE_KEYS.has(body.key)",
   "Memory suggestion is not pending.",

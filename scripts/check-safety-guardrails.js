@@ -13,7 +13,7 @@ const requiredServerSnippets = [
   "risk_type: \"secret_request\"",
   "泄露|密钥|令牌",
   "risk_type: \"tool_permission\"",
-  "删除|提交|执行命令",
+  "删除|写入|提交|推送|执行命令",
   "function scanRetrievedSafety",
   "retrieved_prompt_injection",
   "retrieved_sensitive_content",
@@ -27,7 +27,7 @@ const requiredServerSnippets = [
   "risk_type: \"missing_citation\"",
   "risk_type: \"sensitive_output\"",
   "risk_type: \"overconfidence\"",
-  "impactRefs.length === 0",
+  "hasRequiredCitations",
   "does not clearly mark uncertainty",
   "function validateTraceToolUse",
   "tool_policy_violation"

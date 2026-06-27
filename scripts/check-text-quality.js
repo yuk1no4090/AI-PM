@@ -22,7 +22,9 @@ const patterns = [
   { name: "UTF-8 mojibake quote", pattern: /\u00E2\u20AC|\u9225/g },
   { name: "UTF-8 mojibake accent", pattern: /\u00C3.|\u00C2./g },
   { name: "emoji mojibake", pattern: /\u9983/g },
-  { name: "question-mark mojibake run", pattern: /\?{4,}/g }
+  { name: "question-mark mojibake run", pattern: /\?{4,}/g },
+  { name: "private-use mojibake", pattern: /[\uE000-\uF8FF]/g },
+  { name: "CJK mojibake sentinel", pattern: /[\u942E\u7035\u93AC\u9286\u9225\u9983\u923F]/g }
 ];
 
 const findings = [];

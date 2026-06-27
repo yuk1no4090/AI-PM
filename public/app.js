@@ -1050,6 +1050,7 @@ function renderRuntimeStatus(payload) {
     `${pendingMemory} ${c.chat.pendingMemory}`
   ].filter(Boolean).join(" | ");
   const harnessStatus = [
+    harness.run_id ? `run ${String(harness.run_id).slice(0, 18)}` : null,
     harness.runtime || c.chat.agentRuntime,
     harness.model_mode || c.chat.unknown,
     `${harness.steps_executed || 0} ${c.chat.steps}`,

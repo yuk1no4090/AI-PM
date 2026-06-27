@@ -30,6 +30,7 @@ const missingReadme = requiredPayloadFields.filter((field) => !readme.includes(`
 const missingFrontend = requiredPayloadFields.filter((field) => !appSource.includes(field));
 
 const requiredHarnessFields = [
+  "run_id",
   "runtime",
   "model_mode",
   "model_provider",
@@ -60,6 +61,8 @@ const requiredRuntimeSnippets = [
   "function runModelAdapter",
   "function buildAgentHarnessReport",
   "function buildChatHarnessReport",
+  "function createHarnessRunId",
+  "harness_run_id",
   "runModelAdapter({",
   "buildAgentHarnessReport({",
   "buildChatHarnessReport({",

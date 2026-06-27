@@ -658,6 +658,7 @@ async function main() {
       })
     });
     assert(agent.kind === "agent_impact", "agent endpoint returned wrong kind");
+    assert(/^agent_[0-9a-f-]{36}$/.test(agent.payload?.harness?.run_id || ""), "agent harness did not report a stable run_id");
     assert(agent.payload?.harness?.runtime === "LangGraph StateGraph", "agent did not use LangGraph runtime");
     assert(agent.payload?.harness?.steps_executed >= 9, "agent trace did not include all graph steps");
     assert(agent.payload?.harness?.model_mode === "offline retrieval", "offline smoke test should use retrieval mode");
@@ -794,6 +795,7 @@ async function main() {
     assert(rememberedChatImpact.payload?.memory_used?.used === true, "confirmed memory was not reported by direct chat harness");
     assert(rememberedChatImpact.payload.memory_used.summary.includes("Product Manager"), "direct chat harness did not report role memory");
     assert(rememberedChatImpact.payload.open_questions.some((item) => item.includes("user-facing requirement")), "direct chat impact did not apply product manager memory");
+    assert(/^chat_[0-9a-f-]{36}$/.test(rememberedChatImpact.payload?.harness?.run_id || ""), "direct chat harness did not report a stable run_id");
     assert(rememberedChatImpact.payload.harness.runtime === "Direct Chat Harness", "direct chat impact did not report chat harness");
 
     const invalidForgetKey = await requestError("/api/memory/forget", {
@@ -981,6 +983,7 @@ async function main() {
     assert(qa.kind === "qa", "qa endpoint returned wrong kind");
     assert((qa.payload?.related_files || []).length > 0, "qa answer missing related files");
     assert(qa.payload?.harness?.runtime === "Direct Chat Harness", "qa endpoint missing chat harness");
+    assert(/^chat_[0-9a-f-]{36}$/.test(qa.payload?.harness?.run_id || ""), "qa harness did not report a stable run_id");
     assert(qa.payload.harness.model_mode === "offline retrieval", "offline qa should report retrieval mode");
     assert(qa.payload.harness.model_adapter.llm_attempted === false, "offline qa should not attempt LLM");
     assert(qa.payload.harness.fallback_used === true, "offline qa should report deterministic fallback");
@@ -1010,6 +1013,7 @@ async function main() {
       return item.answerId === agent.answerId && concurrentFeedbackTypes.includes(item.type);
     });
     assert(concurrentFeedback.length >= concurrentFeedbackTypes.length, "concurrent feedback writes were lost");
+    assert(concurrentFeedback.every((item) => item.harness_run_id === agent.payload.harness.run_id), "feedback records did not preserve harness run id");
 
     const forgotten = await request("/api/memory/forget", {
       method: "POST",

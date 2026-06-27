@@ -1263,6 +1263,10 @@ function makeTraceStep({ step, tool, purpose, input, output, citations = [] }) {
   };
 }
 
+function createHarnessRunId(prefix) {
+  return `${prefix}_${crypto.randomUUID()}`;
+}
+
 function summarizeToolRegistry() {
   return {
     policy: AGENT_TOOL_POLICY,
@@ -1658,7 +1662,7 @@ async function runModelAdapter({ question, chunks, kind, project, validatePayloa
   };
 }
 
-function buildAgentHarnessReport({ started, trace, harnessEvents, errors }) {
+function buildAgentHarnessReport({ runId, started, trace, harnessEvents, errors }) {
   const modelEvent = harnessEvents.find((event) => event.type === "model_adapter") || {};
   const harnessErrors = [
     ...errors,
@@ -1684,6 +1688,7 @@ function buildAgentHarnessReport({ started, trace, harnessEvents, errors }) {
     || (budget_status.timeout_exceeded ? "LangGraph workflow exceeded the timeout budget." : null)
     || (!process.env.OPENAI_API_KEY ? "OPENAI_API_KEY is not configured; deterministic retrieval fallback used." : null);
   return {
+    run_id: runId,
     runtime: "LangGraph StateGraph",
     model_mode: process.env.OPENAI_API_KEY ? "ai-enhanced" : "offline retrieval",
     model_provider: process.env.OPENAI_API_KEY ? resolveLlmProvider() : "deterministic",
@@ -1711,7 +1716,7 @@ function buildAgentHarnessReport({ started, trace, harnessEvents, errors }) {
   };
 }
 
-function buildChatHarnessReport({ started, trace, modelEvent, errors }) {
+function buildChatHarnessReport({ runId, started, trace, modelEvent, errors }) {
   const durationMs = Date.now() - started;
   const harnessErrors = [
     ...errors,
@@ -1723,6 +1728,7 @@ function buildChatHarnessReport({ started, trace, modelEvent, errors }) {
     || modelEvent?.error
     || (!process.env.OPENAI_API_KEY ? "OPENAI_API_KEY is not configured; deterministic retrieval fallback used." : null);
   return {
+    run_id: runId,
     runtime: "Direct Chat Harness",
     model_mode: process.env.OPENAI_API_KEY ? "ai-enhanced" : "offline retrieval",
     model_provider: process.env.OPENAI_API_KEY ? resolveLlmProvider() : "deterministic",
@@ -2045,6 +2051,7 @@ function createAgentGraph() {
 
 async function runAgenticImpactWorkflow(store, project, question) {
   const started = Date.now();
+  const runId = createHarnessRunId("agent");
   const graph = createAgentGraph();
   let state;
   let errors = [];
@@ -2101,6 +2108,7 @@ async function runAgenticImpactWorkflow(store, project, question) {
   const payload = state.finalPayload;
   payload.trace = state.trace;
   payload.harness = buildAgentHarnessReport({
+    runId,
     started,
     trace: payload.trace,
     harnessEvents: state.harnessEvents,
@@ -2352,6 +2360,7 @@ async function handleApiUnlocked(req, res, pathname) {
       if (!question) throw apiError("Question is required.", "QUESTION_REQUIRED");
       const kind = body.kind || inferQuestionType(question);
       const started = Date.now();
+      const runId = createHarnessRunId("chat");
       const chunks = retrieveChunks(project, question, kind === "impact" ? 10 : 8);
       const inputSafety = scanInputSafety(question);
       const retrievedSafety = scanRetrievedSafety(chunks);
@@ -2408,6 +2417,7 @@ async function handleApiUnlocked(req, res, pathname) {
       payload.trace = trace;
       payload.safety = safety;
       payload.harness = buildChatHarnessReport({
+        runId,
         started,
         trace,
         modelEvent: modelResult.event,
@@ -2506,6 +2516,7 @@ async function handleApiUnlocked(req, res, pathname) {
         id: crypto.randomUUID(),
         projectId: answer.projectId,
         answerId: answer.id,
+        harness_run_id: answer.payload?.harness?.run_id || null,
         type: body.type,
         createdAt: new Date().toISOString()
       };

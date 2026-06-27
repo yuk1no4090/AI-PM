@@ -100,7 +100,7 @@ input safety
   -> structured synthesizer
 ```
 
-The `modelAdapter` boundary uses an OpenAI-compatible chat completions call when configured and otherwise reports deterministic offline retrieval. LLM transport failures, timeouts, HTTP errors, invalid JSON, and schema errors are reported through `harness.model_adapter` before the deterministic fallback is used. The `agentHarness` boundary records runtime metadata for each agent run: model mode, provider, adapter, executed steps, duration, fallback status, fallback reason, schema status, budgets, budget status, read-only tool registry, and errors. `/api/chat` uses a lighter `Direct Chat Harness` with the same model adapter, schema validation, trace, fallback metadata, `memory_used`, and input/retrieval/output safety reports. Repository files are treated as untrusted evidence; retrieved text is never promoted into system instructions. Sensitive-looking values are redacted before repository context is sent to a model.
+The `modelAdapter` boundary uses an OpenAI-compatible chat completions call when configured and otherwise reports deterministic offline retrieval. LLM transport failures, timeouts, HTTP errors, invalid JSON, and schema errors are reported through `harness.model_adapter` before the deterministic fallback is used. The `agentHarness` boundary records runtime metadata for each agent run: run id, model mode, provider, adapter, executed steps, duration, fallback status, fallback reason, schema status, budgets, budget status, read-only tool registry, and errors. `/api/chat` uses a lighter `Direct Chat Harness` with the same model adapter, schema validation, trace shape, fallback metadata, `memory_used`, and input/retrieval/output safety reports. Feedback records preserve `harness_run_id` when the answer came from an observable harness run. Repository files are treated as untrusted evidence; retrieved text is never promoted into system instructions. Sensitive-looking values are redacted before repository context is sent to a model.
 
 ## API Surface
 
@@ -147,7 +147,7 @@ Common API errors include:
 
 - `memory_used`: confirmed preference memory applied to the run.
 - `memory_suggestions`: pending suggestions that require explicit user confirmation.
-- `harness`: LangGraph runtime, model mode, model adapter, executed steps, duration, fallback status, fallback reason, schema status, budgets, budget status, read-only tool registry, model error codes, and errors.
+- `harness`: LangGraph runtime, run id, model mode, model adapter, executed steps, duration, fallback status, fallback reason, schema status, budgets, budget status, read-only tool registry, model error codes, and errors.
 - `safety`: aggregate safety status, risk types, and guardrail checks.
 
 Evaluation metrics are scoped to the requested `projectId`, so safety, memory, fallback, and response-time counts reflect the currently selected imported repository. Metrics ignore unknown feedback types so old or manually edited store data cannot pollute quality rates and failure-reason counts.

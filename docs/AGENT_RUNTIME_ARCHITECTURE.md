@@ -74,6 +74,7 @@ If no API key is configured, the model adapter reports deterministic offline ret
 
 The harness reports:
 
+- run id
 - runtime
 - model mode and provider
 - model adapter metadata
@@ -87,6 +88,8 @@ The harness reports:
 - budget status
 - read-only tool registry
 - errors
+
+Feedback records preserve `harness_run_id` when the referenced answer payload includes a harness run id, so quality signals can be correlated with the agent or direct chat execution that produced the answer.
 
 `withWorkflowTimeout()` enforces the graph timeout. Timeout failures use the same deterministic fallback path as other workflow failures.
 

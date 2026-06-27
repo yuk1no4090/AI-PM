@@ -14,6 +14,7 @@ const requiredRuntimeSnippets = [
   "payload.memory_suggestions",
   "pendingMemory",
   "harness.duration_ms",
+  "harness.run_id",
   "harness.fallback_used",
   "harness.fallback_reason",
   "modelAdapter.error_code",

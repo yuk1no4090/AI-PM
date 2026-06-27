@@ -55,6 +55,7 @@ const requiredErrorDocSnippets = [
   "average response time",
   "safety risk distribution",
   "fallback reason distribution",
+  "recent harness runs",
   "git commit",
   "Node runtime",
   "uptime"
@@ -65,6 +66,7 @@ const requiredEvaluationMetricSnippets = [
   "average_response_time_ms",
   "safety_risk_counts",
   "fallback_reasons",
+  "recent_harness_runs",
   "rankCounts(safetyRiskCounts)",
   "rankCounts(fallbackReasonCounts)"
 ];

@@ -1000,6 +1000,9 @@ async function main() {
     assert(evaluation.metrics.average_response_time_ms >= 0, "evaluation did not report average response time");
     assert(Array.isArray(evaluation.metrics.safety_risk_counts), "evaluation did not report safety risk counts");
     assert(Array.isArray(evaluation.metrics.fallback_reasons), "evaluation did not report fallback reasons");
+    assert(Array.isArray(evaluation.metrics.recent_harness_runs), "evaluation did not report recent harness runs");
+    assert(evaluation.metrics.recent_harness_runs.some((item) => /^agent_[0-9a-f-]{36}$/.test(item.run_id || "")), "recent harness runs did not include an agent run id");
+    assert(evaluation.metrics.recent_harness_runs.some((item) => /^chat_[0-9a-f-]{36}$/.test(item.run_id || "")), "recent harness runs did not include a chat run id");
     assert(evaluation.metrics.safety_risk_counts.some((item) => item.type === "prompt_injection"), "evaluation did not count prompt injection risk type");
     assert(evaluation.metrics.fallback_reasons.length >= 1, "evaluation did not count fallback reason distribution");
 

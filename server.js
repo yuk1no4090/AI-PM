@@ -2197,6 +2197,23 @@ function computeMetrics(store, projectId) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([type, count]) => ({ type, count }));
+  const recentHarnessRuns = answers
+    .filter((item) => item.payload?.harness?.run_id)
+    .slice(-8)
+    .reverse()
+    .map((item) => ({
+      run_id: item.payload.harness.run_id,
+      answer_id: item.id,
+      kind: item.kind,
+      runtime: item.payload.harness.runtime,
+      model_mode: item.payload.harness.model_mode,
+      duration_ms: item.payload.harness.duration_ms,
+      fallback_used: !!item.payload.harness.fallback_used,
+      fallback_reason: item.payload.harness.fallback_reason || null,
+      safety_status: item.payload?.safety?.status || "not_applicable",
+      risk_types: item.payload?.safety?.risk_types || [],
+      createdAt: item.createdAt
+    }));
   return {
     total_questions: questions.length,
     helpful_rate: feedback.length ? Math.round((helpful / feedback.length) * 100) : 0,
@@ -2213,6 +2230,7 @@ function computeMetrics(store, projectId) {
       : 0,
     safety_risk_counts: rankCounts(safetyRiskCounts),
     fallback_reasons: rankCounts(fallbackReasonCounts),
+    recent_harness_runs: recentHarnessRuns,
     top_failure_reasons: Object.entries(counts)
       .filter(([type]) => type !== "helpful")
       .sort((a, b) => b[1] - a[1])

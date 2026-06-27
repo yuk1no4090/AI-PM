@@ -215,6 +215,7 @@ const copy = {
       failures: "Top Failure Reasons",
       safetyRisks: "Safety Risk Types",
       fallbackReasons: "Fallback Reasons",
+      recentRuns: "Recent Harness Runs",
       recent: "Recent Feedback",
       signals: "Product iteration signals",
       signalItems: [
@@ -419,6 +420,7 @@ const copy = {
       failures: "主要失败原因",
       safetyRisks: "安全风险类型",
       fallbackReasons: "Fallback 原因",
+      recentRuns: "最近运行",
       recent: "最近反馈",
       signals: "产品迭代信号",
       signalItems: [
@@ -1295,6 +1297,27 @@ function rankedBars(items = []) {
   `;
 }
 
+function recentHarnessRuns(items = []) {
+  if (!items.length) return `<p class="empty-inline">No harness runs yet.</p>`;
+  return html`
+    <div class="feedback-log">
+      ${items.map((item) => {
+        const risks = (item.risk_types || []).slice(0, 2).join(", ");
+        const status = [
+          item.safety_status || "unknown",
+          item.fallback_used ? "fallback" : "no fallback",
+          `${item.duration_ms || 0}ms`
+        ].join(" | ");
+        return `<div>
+          <code>${escapeHtml(String(item.run_id || "").slice(0, 18))}</code>
+          <span>${escapeHtml(item.kind || "run")} | ${escapeHtml(item.runtime || "runtime")}</span>
+          <span>${escapeHtml(status)}${risks ? ` | ${escapeHtml(risks)}` : ""}</span>
+        </div>`;
+      }).join("")}
+    </div>
+  `;
+}
+
 function dashboardPage() {
   if (!state.project) return emptyProject("Import a repository before viewing evaluation metrics.");
   const c = t();
@@ -1312,6 +1335,7 @@ function dashboardPage() {
     average_response_time_ms: 0,
     safety_risk_counts: [],
     fallback_reasons: [],
+    recent_harness_runs: [],
     top_failure_reasons: [],
     recent_feedback: []
   };
@@ -1355,6 +1379,10 @@ function dashboardPage() {
         <section class="panel">
           <h2>${c.dashboard.fallbackReasons}</h2>
           ${rankedBars(metrics.fallback_reasons)}
+        </section>
+        <section class="panel span-2">
+          <h2>${c.dashboard.recentRuns}</h2>
+          ${recentHarnessRuns(metrics.recent_harness_runs)}
         </section>
         <section class="panel span-2">
           <h2>${c.dashboard.recent}</h2>

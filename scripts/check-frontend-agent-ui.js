@@ -69,6 +69,18 @@ const missingMemoryActionSnippets = requiredMemoryActionSnippets.filter((snippet
   return !appSource.includes(snippet);
 });
 
+const requiredDashboardSnippets = [
+  "recent_harness_runs",
+  "recentHarnessRuns(metrics.recent_harness_runs)",
+  "c.dashboard.recentRuns",
+  "item.fallback_used",
+  "item.safety_status"
+];
+
+const missingDashboardSnippets = requiredDashboardSnippets.filter((snippet) => {
+  return !appSource.includes(snippet);
+});
+
 const requiredStyleSnippets = [
   ".runtime-status",
   ".memory-suggestions",
@@ -94,6 +106,7 @@ if (
   missingRuntimeSnippets.length
   || missingChatRuntimeSnippets.length
   || missingMemoryActionSnippets.length
+  || missingDashboardSnippets.length
   || missingStyleSnippets.length
   || staleFrontendTerms.length
 ) {
@@ -101,6 +114,7 @@ if (
     missingRuntimeSnippets,
     missingChatRuntimeSnippets,
     missingMemoryActionSnippets,
+    missingDashboardSnippets,
     missingStyleSnippets,
     staleFrontendTerms
   }, null, 2));
@@ -112,5 +126,6 @@ console.log(JSON.stringify({
   runtimeSnippets: requiredRuntimeSnippets.length,
   chatRuntimeSnippets: requiredChatRuntimeSnippets.length,
   memoryActionSnippets: requiredMemoryActionSnippets.length,
+  dashboardSnippets: requiredDashboardSnippets.length,
   styleSnippets: requiredStyleSnippets.length
 }, null, 2));

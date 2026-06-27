@@ -2120,6 +2120,27 @@ function computeMetrics(store, projectId) {
     acc[item.type] = (acc[item.type] || 0) + 1;
     return acc;
   }, {});
+  const responseTimes = answers
+    .map((item) => Number(item.responseTimeMs || item.payload?.harness?.duration_ms || 0))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const safetyRiskCounts = answers.reduce((acc, item) => {
+    (item.payload?.safety?.risk_types || []).forEach((riskType) => {
+      acc[riskType] = (acc[riskType] || 0) + 1;
+    });
+    return acc;
+  }, {});
+  const fallbackReasonCounts = answers.reduce((acc, item) => {
+    if (!item.payload?.harness?.fallback_used) return acc;
+    const reason = item.payload.harness.model_adapter?.error_code
+      || item.payload.harness.fallback_reason
+      || "fallback";
+    acc[reason] = (acc[reason] || 0) + 1;
+    return acc;
+  }, {});
+  const rankCounts = (items) => Object.entries(items)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([type, count]) => ({ type, count }));
   return {
     total_questions: questions.length,
     helpful_rate: feedback.length ? Math.round((helpful / feedback.length) * 100) : 0,
@@ -2131,6 +2152,11 @@ function computeMetrics(store, projectId) {
     guardrail_hits: answers.filter((item) => item.payload?.safety?.status === "needs_review").length,
     memory_confirmations: suggestions.filter((item) => item.status === "confirmed").length,
     fallback_runs: answers.filter((item) => item.payload?.harness?.fallback_used).length,
+    average_response_time_ms: responseTimes.length
+      ? Math.round(responseTimes.reduce((sum, value) => sum + value, 0) / responseTimes.length)
+      : 0,
+    safety_risk_counts: rankCounts(safetyRiskCounts),
+    fallback_reasons: rankCounts(fallbackReasonCounts),
     top_failure_reasons: Object.entries(counts)
       .filter(([type]) => type !== "helpful")
       .sort((a, b) => b[1] - a[1])

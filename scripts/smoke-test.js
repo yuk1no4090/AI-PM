@@ -986,6 +986,11 @@ async function main() {
     assert(evaluation.metrics.guardrail_hits >= 1, "evaluation did not count safety guardrail hits");
     assert(evaluation.metrics.memory_confirmations >= 1, "evaluation did not count memory confirmations");
     assert(evaluation.metrics.fallback_runs >= 1, "evaluation did not count offline fallback runs");
+    assert(evaluation.metrics.average_response_time_ms >= 0, "evaluation did not report average response time");
+    assert(Array.isArray(evaluation.metrics.safety_risk_counts), "evaluation did not report safety risk counts");
+    assert(Array.isArray(evaluation.metrics.fallback_reasons), "evaluation did not report fallback reasons");
+    assert(evaluation.metrics.safety_risk_counts.some((item) => item.type === "prompt_injection"), "evaluation did not count prompt injection risk type");
+    assert(evaluation.metrics.fallback_reasons.length >= 1, "evaluation did not count fallback reason distribution");
 
     const concurrentFeedbackTypes = ["helpful", "not_helpful", "inaccurate", "missing_citation", "too_generic"];
     await Promise.all(concurrentFeedbackTypes.map((type) => request("/api/feedback", {
@@ -1034,7 +1039,8 @@ async function main() {
         agent_runs: evaluation.metrics.agent_runs,
         guardrail_hits: evaluation.metrics.guardrail_hits,
         memory_confirmations: evaluation.metrics.memory_confirmations,
-        fallback_runs: evaluation.metrics.fallback_runs
+        fallback_runs: evaluation.metrics.fallback_runs,
+        average_response_time_ms: evaluation.metrics.average_response_time_ms
       },
       commonErrorCodes: [...new Set([
         missingProject.payload.code,

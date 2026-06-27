@@ -51,9 +51,21 @@ const requiredErrorDocSnippets = [
   "ANSWER_NOT_FOUND",
   "INVALID_FEEDBACK_TYPE",
   "ROUTE_NOT_FOUND",
-  "Metrics ignore unknown feedback types"
+  "Metrics ignore unknown feedback types",
+  "average response time",
+  "safety risk distribution",
+  "fallback reason distribution"
 ];
 const missingReadmeErrorDocs = requiredErrorDocSnippets.filter((snippet) => !readme.includes(snippet));
+
+const requiredEvaluationMetricSnippets = [
+  "average_response_time_ms",
+  "safety_risk_counts",
+  "fallback_reasons",
+  "rankCounts(safetyRiskCounts)",
+  "rankCounts(fallbackReasonCounts)"
+];
+const missingEvaluationMetricSnippets = requiredEvaluationMetricSnippets.filter((snippet) => !serverSource.includes(snippet));
 
 if (
   readmeDiff.missingFromDoc.length
@@ -61,6 +73,7 @@ if (
   || userGuideDiff.missingFromDoc.length
   || userGuideDiff.missingFromServer.length
   || missingReadmeErrorDocs.length
+  || missingEvaluationMetricSnippets.length
 ) {
   console.error(JSON.stringify({
     implemented,
@@ -70,7 +83,8 @@ if (
     readmeOnlyRoutes: readmeDiff.missingFromServer,
     missingFromUserGuide: userGuideDiff.missingFromDoc,
     userGuideOnlyRoutes: userGuideDiff.missingFromServer,
-    missingReadmeErrorDocs
+    missingReadmeErrorDocs,
+    missingEvaluationMetricSnippets
   }, null, 2));
   throw new Error("API documentation is out of sync with server routes.");
 }
@@ -79,5 +93,6 @@ console.log(JSON.stringify({
   ok: true,
   readmeRoutes: readmeDocumented.length,
   userGuideRoutes: userGuideDocumented.length,
-  errorDocSnippets: requiredErrorDocSnippets.length
+  errorDocSnippets: requiredErrorDocSnippets.length,
+  evaluationMetricSnippets: requiredEvaluationMetricSnippets.length
 }, null, 2));

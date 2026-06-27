@@ -211,7 +211,10 @@ const copy = {
       guardrailHits: "Guardrail Hits",
       memorySaves: "Memory Saves",
       fallbackRuns: "Fallback Runs",
+      avgResponse: "Avg Response",
       failures: "Top Failure Reasons",
+      safetyRisks: "Safety Risk Types",
+      fallbackReasons: "Fallback Reasons",
       recent: "Recent Feedback",
       signals: "Product iteration signals",
       signalItems: [
@@ -412,7 +415,10 @@ const copy = {
       guardrailHits: "护栏命中",
       memorySaves: "记忆保存",
       fallbackRuns: "Fallback 次数",
+      avgResponse: "平均响应",
       failures: "主要失败原因",
+      safetyRisks: "安全风险类型",
+      fallbackReasons: "Fallback 原因",
       recent: "最近反馈",
       signals: "产品迭代信号",
       signalItems: [
@@ -1269,6 +1275,25 @@ function failureReasons(metrics) {
   `;
 }
 
+function rankedBars(items = []) {
+  const c = t();
+  const values = items.length ? items : [{ type: "none", count: 0 }];
+  const max = Math.max(...values.map((item) => item.count), 1);
+  return html`
+    <div class="failure-bars">
+      ${values.map((item) => `
+        <div class="failure-bar">
+          <div>
+            <strong>${escapeHtml(String(item.type).replaceAll("_", " "))}</strong>
+            <span>${item.count} ${c.dashboard.occurrences}</span>
+          </div>
+          <i style="width:${Math.max(6, (item.count / max) * 100)}%"></i>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 function dashboardPage() {
   if (!state.project) return emptyProject("Import a repository before viewing evaluation metrics.");
   const c = t();
@@ -1283,6 +1308,9 @@ function dashboardPage() {
     guardrail_hits: 0,
     memory_confirmations: 0,
     fallback_runs: 0,
+    average_response_time_ms: 0,
+    safety_risk_counts: [],
+    fallback_reasons: [],
     top_failure_reasons: [],
     recent_feedback: []
   };
@@ -1296,7 +1324,8 @@ function dashboardPage() {
     [c.dashboard.highRisk, metrics.high_risk_questions],
     [c.dashboard.guardrailHits, metrics.guardrail_hits || 0],
     [c.dashboard.memorySaves, metrics.memory_confirmations || 0],
-    [c.dashboard.fallbackRuns, metrics.fallback_runs || 0]
+    [c.dashboard.fallbackRuns, metrics.fallback_runs || 0],
+    [c.dashboard.avgResponse, `${metrics.average_response_time_ms || 0}ms`]
   ];
   return html`
     <main class="page-shell">
@@ -1317,6 +1346,14 @@ function dashboardPage() {
         <section class="panel">
           <h2>${c.dashboard.failures}</h2>
           ${failureReasons(metrics)}
+        </section>
+        <section class="panel">
+          <h2>${c.dashboard.safetyRisks}</h2>
+          ${rankedBars(metrics.safety_risk_counts)}
+        </section>
+        <section class="panel">
+          <h2>${c.dashboard.fallbackReasons}</h2>
+          ${rankedBars(metrics.fallback_reasons)}
         </section>
         <section class="panel span-2">
           <h2>${c.dashboard.recent}</h2>

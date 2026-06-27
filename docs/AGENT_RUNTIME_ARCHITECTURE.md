@@ -151,4 +151,4 @@ Smoke tests cover:
 - API-key mode with fake OpenAI-compatible schema failure
 - valid schema with nonexistent citation
 - valid schema with uncited impact area
-- Q&A and evaluation regressions
+- Q&A and evaluation regressions, including average response time, safety risk type counts, and fallback reason counts

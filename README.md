@@ -106,7 +106,7 @@ The `modelAdapter` boundary uses an OpenAI-compatible chat completions call when
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/api/health` | Server and LLM configuration status. |
+| `GET` | `/api/health` | Server, package version, git commit, Node runtime, environment, uptime, and LLM configuration status. |
 | `GET` | `/api/projects` | List imported projects without chunk bodies. |
 | `POST` | `/api/import` | Import sample, public GitHub repository, or ZIP upload. |
 | `POST` | `/api/chat` | Repository Q&A or standard impact analysis with lightweight harness and safety metadata. |

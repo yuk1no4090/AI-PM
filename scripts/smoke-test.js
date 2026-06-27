@@ -558,6 +558,14 @@ async function main() {
   try {
     await waitForServer(child);
 
+    const health = await request("/api/health");
+    assert(health.status === "ok", "health endpoint did not report ok status");
+    assert(health.version === "0.1.0", "health endpoint did not report package version");
+    assert(typeof health.commit === "string" && health.commit.length > 0, "health endpoint did not report commit");
+    assert(typeof health.node === "string" && health.node.startsWith("v"), "health endpoint did not report Node runtime");
+    assert(health.environment === (process.env.NODE_ENV || "development"), "health endpoint did not report runtime environment");
+    assert(Number.isInteger(health.uptime_seconds), "health endpoint did not report integer uptime");
+
     const missingProject = await requestError("/api/evaluation");
     assert(missingProject.status === 400, "missing project should return 400");
     assert(missingProject.payload.code === "PROJECT_REQUIRED", "missing project returned wrong error code");

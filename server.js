@@ -16,6 +16,54 @@ const STORE_PATH = process.env.STORE_PATH
   ? path.resolve(process.env.STORE_PATH)
   : path.join(DATA_DIR, "store.json");
 
+function readTextFileSafe(filePath) {
+  try {
+    return readFileSync(filePath, "utf8").trim();
+  } catch {
+    return "";
+  }
+}
+
+function resolvePackageVersion() {
+  try {
+    const packageJson = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8"));
+    return packageJson.version || "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
+
+function resolveRuntimeCommit() {
+  const envCommit = process.env.GITHUB_SHA
+    || process.env.COMMIT_SHA
+    || process.env.VERCEL_GIT_COMMIT_SHA
+    || process.env.RENDER_GIT_COMMIT;
+  if (envCommit) return envCommit.slice(0, 12);
+
+  const gitDir = path.join(ROOT, ".git");
+  const head = readTextFileSafe(path.join(gitDir, "HEAD"));
+  if (!head) return "unknown";
+  if (!head.startsWith("ref:")) return head.slice(0, 12);
+
+  const refName = head.slice(5).trim();
+  const refCommit = readTextFileSafe(path.join(gitDir, refName));
+  if (refCommit) return refCommit.slice(0, 12);
+
+  const packedRefs = readTextFileSafe(path.join(gitDir, "packed-refs"));
+  const packedLine = packedRefs
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => line && !line.startsWith("#") && line.endsWith(` ${refName}`));
+  return packedLine ? packedLine.split(/\s+/)[0].slice(0, 12) : "unknown";
+}
+
+const RUNTIME_METADATA = Object.freeze({
+  version: resolvePackageVersion(),
+  commit: resolveRuntimeCommit(),
+  node: process.version,
+  environment: process.env.NODE_ENV || "development"
+});
+
 const ALLOWED_EXTENSIONS = new Set([
   ".md",
   ".txt",
@@ -2487,7 +2535,10 @@ async function handleApiUnlocked(req, res, pathname) {
           model,
           endpoint: endpoint || "(not configured - set OPENAI_API_KEY)"
         },
-        version: "0.1.0",
+        version: RUNTIME_METADATA.version,
+        commit: RUNTIME_METADATA.commit,
+        node: RUNTIME_METADATA.node,
+        environment: RUNTIME_METADATA.environment,
         uptime_seconds: Math.floor(process.uptime())
       });
       return;

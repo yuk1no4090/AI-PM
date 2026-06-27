@@ -54,7 +54,10 @@ const requiredErrorDocSnippets = [
   "Metrics ignore unknown feedback types",
   "average response time",
   "safety risk distribution",
-  "fallback reason distribution"
+  "fallback reason distribution",
+  "git commit",
+  "Node runtime",
+  "uptime"
 ];
 const missingReadmeErrorDocs = requiredErrorDocSnippets.filter((snippet) => !readme.includes(snippet));
 

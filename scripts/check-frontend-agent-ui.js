@@ -109,6 +109,11 @@ const requiredDashboardSnippets = [
   "recentHarnessRuns(metrics.recent_harness_runs)",
   "harness_run_snapshots",
   "Harness Snapshots",
+  "data-harness-run",
+  "function loadHarnessAudit",
+  "/api/harness-run?projectId=",
+  "function harnessAuditPanel",
+  "state.harnessAudit",
   "recent_safety_events",
   "recentSafetyEvents(metrics.recent_safety_events)",
   "c.dashboard.recentSafety",
@@ -131,7 +136,9 @@ const requiredStyleSnippets = [
   ".memory-state",
   ".memory-manager",
   ".memory-preferences",
-  ".memory-clear"
+  ".memory-clear",
+  ".text-button",
+  ".compact-trace"
 ];
 
 const staleFrontendTerms = [

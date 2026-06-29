@@ -1451,6 +1451,25 @@ code {
   line-height: 1.5;
 }
 
+.text-button {
+  margin-top: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.text-button:hover {
+  color: var(--accent-2);
+}
+
+.compact-trace {
+  margin-top: 12px;
+}
+
 /* ---- Risk Badge ---- */
 .risk {
   display: inline-block;

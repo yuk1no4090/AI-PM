@@ -6,6 +6,7 @@ const state = {
   progress: [],
   messages: [],
   metrics: null,
+  harnessAudit: null,
   memory: null,
   llmStatus: null,
   lang: localStorage.getItem("aido-lang") || "en"
@@ -1360,9 +1361,37 @@ function recentHarnessRuns(items = []) {
           <code>${escapeHtml(String(item.run_id || "").slice(0, 18))}</code>
           <span>${escapeHtml(item.kind || "run")} | ${escapeHtml(item.runtime || "runtime")}</span>
           <span>${escapeHtml(status)}${risks ? ` | ${escapeHtml(risks)}` : ""}</span>
+          <button class="text-button" data-harness-run="${escapeHtml(item.run_id || "")}">Audit</button>
         </div>`;
       }).join("")}
     </div>
+  `;
+}
+
+function harnessAuditPanel(audit) {
+  if (!audit) return "";
+  const trace = audit.answer?.trace || [];
+  const harness = audit.answer?.harness || {};
+  const safety = audit.answer?.safety || {};
+  return html`
+    <section class="panel span-3">
+      <h2>Harness Run Audit</h2>
+      <div class="runtime-status">
+        <div><strong>run</strong><span>${escapeHtml(audit.run?.run_id || "")}</span></div>
+        <div><strong>runtime</strong><span>${escapeHtml(audit.run?.runtime || harness.runtime || "")}</span></div>
+        <div><strong>safety</strong><span>${escapeHtml(audit.run?.safety_status || safety.status || "unknown")}</span></div>
+        <div><strong>fallback</strong><span>${escapeHtml(audit.run?.fallback_used ? "true" : "false")}</span></div>
+      </div>
+      <div class="trace-list compact-trace">
+        ${renderList(trace, (step) => `
+          <div class="trace-step">
+            <strong>${escapeHtml(step.step || step.tool || "step")}</strong>
+            <span>${escapeHtml(step.tool || "tool")}</span>
+            <p>${escapeHtml(step.purpose || "")}</p>
+          </div>
+        `)}
+      </div>
+    </section>
   `;
 }
 
@@ -1542,6 +1571,7 @@ function dashboardPage() {
           <h2>${c.dashboard.recentRuns}</h2>
           ${recentHarnessRuns(metrics.recent_harness_runs)}
         </section>
+        ${harnessAuditPanel(state.harnessAudit)}
         <section class="panel span-2">
           <h2>${c.dashboard.recent}</h2>
           <div class="feedback-log">
@@ -1796,6 +1826,16 @@ async function refreshMetrics(shouldRender = true) {
   if (shouldRender) render();
 }
 
+async function loadHarnessAudit(runId) {
+  if (!state.project || !runId) return;
+  try {
+    state.harnessAudit = await api(`/api/harness-run?projectId=${encodeURIComponent(state.project.id)}&runId=${encodeURIComponent(runId)}`);
+    render();
+  } catch (error) {
+    showError(error);
+  }
+}
+
 function switchTab(tab) {
   document.querySelectorAll(".tab").forEach((button) => button.classList.toggle("active", button.dataset.tab === tab));
   const target = document.querySelector("#tabContent");
@@ -1869,6 +1909,12 @@ document.addEventListener("click", (event) => {
   const memoryButton = event.target.closest("[data-memory-action]");
   if (memoryButton) {
     handleMemorySuggestion(memoryButton.dataset.suggestion, memoryButton.dataset.memoryAction);
+    return;
+  }
+
+  const harnessRunButton = event.target.closest("[data-harness-run]");
+  if (harnessRunButton) {
+    loadHarnessAudit(harnessRunButton.dataset.harnessRun);
     return;
   }
 });

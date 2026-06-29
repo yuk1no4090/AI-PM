@@ -111,7 +111,7 @@ Citation observability uses the same validation boundary as the output guardrail
 
 `withWorkflowTimeout()` enforces the graph timeout. Timeout failures use the same deterministic fallback path as other workflow failures.
 
-`LLM_REQUEST_TIMEOUT_MS` controls individual model call timeouts for both the LangGraph workflow and the direct chat harness.
+`LLM_REQUEST_TIMEOUT_MS` controls individual model call timeouts for both the LangGraph workflow and the direct chat harness. Invalid or non-positive timeout values fall back to the default agent timeout so harness budget metadata stays finite.
 
 ## Tool Policy
 

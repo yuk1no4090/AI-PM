@@ -21,7 +21,10 @@ const requiredSnippets = [
   "STORE_PATH: storePath",
   "customStorePathCreated",
   "async function runCorruptStoreBackupSmoke",
-  "corruptStoreBackedUp"
+  "corruptStoreBackedUp",
+  "async function runInvalidTimeoutConfigSmoke",
+  "LLM_REQUEST_TIMEOUT_MS: \"not-a-number\"",
+  "invalidTimeoutFallback"
 ];
 
 const stalePatterns = [

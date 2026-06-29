@@ -58,6 +58,7 @@ const requiredRuntimeSnippets = [
   "LLM output failed schema validation",
   "LLM_TIMEOUT",
   "LLM_REQUEST_TIMEOUT_MS",
+  "function parsePositiveIntegerEnv",
   "function runModelAdapter",
   "function buildAgentHarnessReport",
   "function buildChatHarnessReport",

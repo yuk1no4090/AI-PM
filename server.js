@@ -101,7 +101,13 @@ const AGENT_BUDGETS = {
   max_steps: 9,
   timeout_ms: 30_000
 };
-const LLM_REQUEST_TIMEOUT_MS = Number(process.env.LLM_REQUEST_TIMEOUT_MS || AGENT_BUDGETS.timeout_ms);
+
+function parsePositiveIntegerEnv(name, fallback) {
+  const value = Number(process.env[name]);
+  return Number.isInteger(value) && value > 0 ? value : fallback;
+}
+
+const LLM_REQUEST_TIMEOUT_MS = parsePositiveIntegerEnv("LLM_REQUEST_TIMEOUT_MS", AGENT_BUDGETS.timeout_ms);
 
 const AGENT_TOOL_REGISTRY = [
   { name: "safety.scan_input", capability: "input_guardrail", access: "read-only", external_network: false },

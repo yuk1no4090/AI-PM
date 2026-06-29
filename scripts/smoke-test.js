@@ -533,6 +533,60 @@ async function runCorruptStoreBackupSmoke() {
   }
 }
 
+async function runInvalidTimeoutConfigSmoke() {
+  const dataDir = await mkdtemp(path.join(tmpdir(), "ai-pm-invalid-timeout-"));
+  const port = await getFreePort();
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const child = spawn(process.execPath, ["server.js"], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      PORT: port,
+      HOST: "127.0.0.1",
+      DATA_DIR: dataDir,
+      OPENAI_API_KEY: "",
+      LLM_REQUEST_TIMEOUT_MS: "not-a-number"
+    },
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+
+  let stdout = "";
+  let stderr = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+  child.stderr.on("data", (chunk) => {
+    stderr += chunk.toString();
+  });
+
+  try {
+    await waitForServer(child, baseUrl);
+    const imported = await requestTo(baseUrl, "/api/import", {
+      method: "POST",
+      body: JSON.stringify({ sample: true })
+    });
+    const chat = await requestTo(baseUrl, "/api/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        projectId: imported.project.id,
+        question: "Where is order creation logic?",
+        kind: "qa"
+      })
+    });
+    assert(chat.payload.harness.budgets.timeout_ms === 30000, "invalid LLM_REQUEST_TIMEOUT_MS should fall back to default timeout");
+    assert(chat.payload.harness.budget_status.timeout_ms === 30000, "budget status should use fallback timeout for invalid config");
+    assert(Number.isFinite(chat.payload.harness.budget_status.timeout_ms), "budget timeout should be finite");
+    return { invalidTimeoutFallback: true };
+  } catch (error) {
+    console.error(stdout);
+    console.error(stderr);
+    throw error;
+  } finally {
+    await stopChild(child);
+    await rm(dataDir, { recursive: true, force: true });
+  }
+}
+
 async function main() {
   const dataDir = await mkdtemp(path.join(tmpdir(), "ai-pm-smoke-"));
   PORT = await getFreePort();
@@ -1139,6 +1193,7 @@ async function main() {
 
     const storePathSmoke = await runStorePathSmoke();
     const corruptStoreBackupSmoke = await runCorruptStoreBackupSmoke();
+    const invalidTimeoutConfigSmoke = await runInvalidTimeoutConfigSmoke();
     const llmSchemaFallback = await runLlmSchemaFallbackSmoke();
 
     console.log(JSON.stringify({
@@ -1173,6 +1228,7 @@ async function main() {
       ])],
       storePathSmoke,
       corruptStoreBackupSmoke,
+      invalidTimeoutConfigSmoke,
       llmSchemaFallback
     }, null, 2));
   } catch (error) {

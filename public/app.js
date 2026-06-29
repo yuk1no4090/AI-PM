@@ -214,6 +214,8 @@ const copy = {
       avgResponse: "Avg Response",
       failures: "Top Failure Reasons",
       safetyRisks: "Safety Risk Types",
+      safetyStatus: "Safety Status",
+      memoryStatus: "Memory Status",
       fallbackReasons: "Fallback Reasons",
       recentSafety: "Recent Safety Events",
       recentMemory: "Recent Memory Events",
@@ -421,6 +423,8 @@ const copy = {
       avgResponse: "平均响应",
       failures: "主要失败原因",
       safetyRisks: "安全风险类型",
+      safetyStatus: "安全状态",
+      memoryStatus: "记忆状态",
       fallbackReasons: "Fallback 原因",
       recentSafety: "最近安全事件",
       recentMemory: "最近记忆事件",
@@ -1371,6 +1375,8 @@ function dashboardPage() {
     fallback_runs: 0,
     average_response_time_ms: 0,
     safety_risk_counts: [],
+    safety_status_counts: [],
+    memory_status_counts: [],
     fallback_reasons: [],
     recent_harness_runs: [],
     recent_safety_events: [],
@@ -1414,6 +1420,14 @@ function dashboardPage() {
         <section class="panel">
           <h2>${c.dashboard.safetyRisks}</h2>
           ${rankedBars(metrics.safety_risk_counts)}
+        </section>
+        <section class="panel">
+          <h2>${c.dashboard.safetyStatus}</h2>
+          ${rankedBars(metrics.safety_status_counts)}
+        </section>
+        <section class="panel">
+          <h2>${c.dashboard.memoryStatus}</h2>
+          ${rankedBars(metrics.memory_status_counts)}
         </section>
         <section class="panel span-2">
           <h2>${c.dashboard.recentSafety}</h2>

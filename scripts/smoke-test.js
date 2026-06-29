@@ -998,9 +998,13 @@ async function main() {
     assert(evaluation.metrics.memory_confirmations >= 1, "evaluation did not count memory confirmations");
     assert(evaluation.metrics.fallback_runs >= 1, "evaluation did not count offline fallback runs");
     assert(evaluation.metrics.average_response_time_ms >= 0, "evaluation did not report average response time");
+    assert(Array.isArray(evaluation.metrics.memory_status_counts), "evaluation did not report memory status counts");
+    assert(evaluation.metrics.memory_status_counts.some((item) => item.type === "confirmed"), "evaluation did not count confirmed memory status");
     assert(Array.isArray(evaluation.metrics.recent_memory_events), "evaluation did not report recent memory events");
     assert(evaluation.metrics.recent_memory_events.some((item) => item.key && item.status), "recent memory events did not include preference details");
     assert(Array.isArray(evaluation.metrics.safety_risk_counts), "evaluation did not report safety risk counts");
+    assert(Array.isArray(evaluation.metrics.safety_status_counts), "evaluation did not report safety status counts");
+    assert(evaluation.metrics.safety_status_counts.some((item) => item.type === "needs_review"), "evaluation did not count needs_review safety status");
     assert(Array.isArray(evaluation.metrics.recent_safety_events), "evaluation did not report recent safety events");
     assert(Array.isArray(evaluation.metrics.fallback_reasons), "evaluation did not report fallback reasons");
     assert(Array.isArray(evaluation.metrics.recent_harness_runs), "evaluation did not report recent harness runs");

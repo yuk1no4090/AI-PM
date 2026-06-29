@@ -53,8 +53,9 @@ const requiredErrorDocSnippets = [
   "ROUTE_NOT_FOUND",
   "Metrics ignore unknown feedback types",
   "average response time",
+  "memory status distribution",
   "recent memory events",
-  "safety risk distribution",
+  "safety risk and status distribution",
   "recent safety events",
   "fallback reason distribution",
   "recent harness runs",
@@ -66,8 +67,10 @@ const missingReadmeErrorDocs = requiredErrorDocSnippets.filter((snippet) => !rea
 
 const requiredEvaluationMetricSnippets = [
   "average_response_time_ms",
+  "memory_status_counts",
   "recent_memory_events",
   "safety_risk_counts",
+  "safety_status_counts",
   "recent_safety_events",
   "fallback_reasons",
   "recent_harness_runs",

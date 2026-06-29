@@ -97,6 +97,8 @@ The same evaluation payload derives `recent_safety_events` from saved answers wi
 
 It also derives `recent_memory_events` from project-owned memory suggestions. Each item includes the suggestion id, preference key/value, display label, status, confidence, and creation time.
 
+The evaluation payload also exposes `safety_status_counts` and `memory_status_counts`, so the dashboard can distinguish passed versus review-needed safety outcomes and pending versus confirmed or ignored memory suggestions.
+
 `withWorkflowTimeout()` enforces the graph timeout. Timeout failures use the same deterministic fallback path as other workflow failures.
 
 `LLM_REQUEST_TIMEOUT_MS` controls individual model call timeouts for both the LangGraph workflow and the direct chat harness.

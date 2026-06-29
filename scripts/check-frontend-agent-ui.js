@@ -38,7 +38,9 @@ const requiredChatRuntimeSnippets = [
   "function renderOptionalRuntimeStatus",
   "renderOptionalRuntimeStatus(payload)",
   "function renderOnboardingMessage",
-  "renderMemorySuggestions(payload.memory_suggestions)"
+  "renderMemorySuggestions(payload.memory_suggestions)",
+  "state.llmStatus?.llm?.request_timeout_ms",
+  "timeoutTitle"
 ];
 
 const missingChatRuntimeSnippets = requiredChatRuntimeSnippets.filter((snippet) => {

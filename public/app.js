@@ -800,10 +800,12 @@ function llmModeBadge() {
   const c = t();
   const configured = state.llmStatus?.llm?.configured;
   const provider = state.llmStatus?.llm?.provider || "";
+  const timeout = state.llmStatus?.llm?.request_timeout_ms;
+  const timeoutTitle = Number.isFinite(timeout) ? ` | timeout ${timeout}ms` : "";
   if (configured) {
-    return `<span class="llm-badge active" title="LLM: ${escapeHtml(provider)} - ${escapeHtml(state.llmStatus?.llm?.model || "")}">AI ${escapeHtml(c.chat.modeAI)}</span>`;
+    return `<span class="llm-badge active" title="LLM: ${escapeHtml(provider)} - ${escapeHtml(state.llmStatus?.llm?.model || "")}${escapeHtml(timeoutTitle)}">AI ${escapeHtml(c.chat.modeAI)}</span>`;
   }
-  return `<span class="llm-badge fallback" title="Set OPENAI_API_KEY to enable AI mode">OFF ${escapeHtml(c.chat.modeFallback)}</span>`;
+  return `<span class="llm-badge fallback" title="Set OPENAI_API_KEY to enable AI mode${escapeHtml(timeoutTitle)}">OFF ${escapeHtml(c.chat.modeFallback)}</span>`;
 }
 
 function chatPage() {

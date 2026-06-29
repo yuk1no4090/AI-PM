@@ -76,6 +76,7 @@ const requiredRuntimeSnippets = [
   "timeout_exceeded",
   "learning_skipped",
   "input_safety_needs_review",
+  "payload.memory_suggestions = memorySuggestions",
   "schema_errors",
   "error_code",
   "http_status",

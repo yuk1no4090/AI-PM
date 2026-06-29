@@ -2504,6 +2504,10 @@ async function handleApiUnlocked(req, res, pathname) {
       const retrievedSafety = scanRetrievedSafety(chunks);
       const preferences = store.userPreferences || createEmptyPreferences();
       const memorySummary = summarizePreferences(preferences);
+      const memoryLearningAllowed = inputSafety.status === "passed";
+      const memorySuggestions = memoryLearningAllowed
+        ? createMemorySuggestions(store, project.id, question)
+        : [];
       const validatePayload = kind === "impact" ? validateImpactPayload : validateQaPayload;
       const modelResult = await runModelAdapter({ question, chunks, kind, project, validatePayload });
       let payload = modelResult.payload || (kind === "impact"
@@ -2513,6 +2517,7 @@ async function handleApiUnlocked(req, res, pathname) {
         payload = applyPreferencesToImpact(payload, preferences);
       }
       payload.memory_used = { used: memorySummary !== "none", summary: memorySummary };
+      payload.memory_suggestions = memorySuggestions;
       payload.llm_used = !!modelResult.event.llm_used;
       // Normalize uncertainty to string for consistent frontend + metrics
       if (payload.uncertainty === true || payload.uncertainty === false) {
@@ -2525,7 +2530,12 @@ async function handleApiUnlocked(req, res, pathname) {
           tool: "safety.scan_input",
           purpose: "Check the user request for prompt injection, secret requests, or write-tool intent.",
           input: question,
-          output: { status: inputSafety.status, risk_types: inputSafety.risk_types }
+          output: {
+            status: inputSafety.status,
+            risk_types: inputSafety.risk_types,
+            memory_suggestions: memorySuggestions.length,
+            learning_skipped: !memoryLearningAllowed
+          }
         }),
         makeTraceStep({
           step: "2. Retrieve repository context",
@@ -2580,6 +2590,9 @@ async function handleApiUnlocked(req, res, pathname) {
       };
       store.questions.push(questionRecord);
       store.answers.push(answerRecord);
+      if (memorySuggestions.length) {
+        store.memorySuggestions.push(...memorySuggestions);
+      }
       await saveStore(store);
       sendJson(res, 200, { answerId: answerRecord.id, kind, payload });
       return;

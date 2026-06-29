@@ -797,6 +797,20 @@ async function main() {
     assert(rememberedChatImpact.payload.open_questions.some((item) => item.includes("user-facing requirement")), "direct chat impact did not apply product manager memory");
     assert(/^chat_[0-9a-f-]{36}$/.test(rememberedChatImpact.payload?.harness?.run_id || ""), "direct chat harness did not report a stable run_id");
     assert(rememberedChatImpact.payload.harness.runtime === "Direct Chat Harness", "direct chat impact did not report chat harness");
+    const chatMemorySuggestion = await request("/api/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        projectId,
+        kind: "qa",
+        question: "As QA, I prefer detailed testing-focused answers for checkout risk reviews."
+      })
+    });
+    assert(chatMemorySuggestion.payload.memory_suggestions.some((item) => item.status === "pending"), "direct chat did not create pending memory suggestions");
+    assert(chatMemorySuggestion.payload.memory_suggestions.some((item) => item.key === "role" && item.value === "QA"), "direct chat did not suggest QA role memory");
+    const memoryAfterChatSuggestion = await request(`/api/memory?projectId=${encodeURIComponent(projectId)}`);
+    assert(memoryAfterChatSuggestion.suggestions.some((item) => {
+      return item.status === "pending" && item.key === "role" && item.value === "QA";
+    }), "direct chat memory suggestion was not persisted as pending");
 
     const invalidForgetKey = await requestError("/api/memory/forget", {
       method: "POST",
@@ -1006,6 +1020,10 @@ async function main() {
     assert(unsafeChat.payload.safety.risk_types.includes("prompt_injection"), "unsafe chat prompt injection risk not reported");
     assert(unsafeChat.payload.safety.risk_types.includes("secret_request"), "unsafe chat secret request risk not reported");
     assert(unsafeChat.payload.guardrails.some((item) => item.name === "Prompt injection" && item.status === "needs_review"), "unsafe chat prompt injection guardrail not surfaced");
+    assert(unsafeChat.payload.memory_suggestions.length === 0, "unsafe chat input should not create memory suggestions");
+    assert((unsafeChat.payload.trace || []).some((step) => {
+      return step.tool === "safety.scan_input" && step.output?.learning_skipped === true;
+    }), "unsafe chat input should mark memory learning as skipped");
 
     const evaluation = await request(`/api/evaluation?projectId=${encodeURIComponent(projectId)}`);
     assert(evaluation.metrics.agent_runs >= 8, "evaluation did not count agent runs");

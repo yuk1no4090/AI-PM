@@ -27,7 +27,7 @@ input_safety
 
 Each node appends trace metadata so the UI can show the agent path instead of hiding the workflow.
 
-`/api/chat` is not a LangGraph workflow. It uses a lighter `Direct Chat Harness` that reuses the same model adapter, schema validation, trace shape, deterministic fallback, confirmed `memory_used` reporting, read-only tool policy, input/retrieval/output safety reports, and guardrail detail format. This keeps the existing chat API compatible while making ordinary Q&A and standard impact analysis observable through the same harness fields.
+`/api/chat` is not a LangGraph workflow. It uses a lighter `Direct Chat Harness` that reuses the same model adapter, schema validation, trace shape, deterministic fallback, confirmed `memory_used` reporting, pending `memory_suggestions`, read-only tool policy, input/retrieval/output safety reports, and guardrail detail format. This keeps the existing chat API compatible while making ordinary Q&A and standard impact analysis observable through the same harness fields.
 
 ## Memory Boundary
 
@@ -45,7 +45,7 @@ Supported preference fields:
 - `focusAreas`
 - `taskTypes`
 
-Memory suggestions are stored separately under `memorySuggestions`. The system may suggest memory from recent usage, but only `POST /api/memory/confirm` writes the value into long-lived preferences. `POST /api/memory/forget` can ignore one pending suggestion, clear one known preference key, or clear all preferences.
+Memory suggestions are stored separately under `memorySuggestions`. The system may suggest memory from recent Agent Workflow or Direct Chat usage, but only `POST /api/memory/confirm` writes the value into long-lived preferences. `POST /api/memory/forget` can ignore one pending suggestion, clear one known preference key, or clear all preferences.
 
 The Copilot inspector uses `GET /api/memory` plus `POST /api/memory/forget` as a lightweight memory manager. It shows confirmed preferences and lets the user remove one key/value pair or clear all preferences without creating a separate page.
 

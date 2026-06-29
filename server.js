@@ -2669,6 +2669,17 @@ function computeMetrics(store, projectId) {
     acc[reason] = (acc[reason] || 0) + 1;
     return acc;
   }, {});
+  const outputRedactionEvents = answers
+    .filter((item) => item.payload?.safety?.output_redaction?.applied)
+    .map((item) => ({
+      answer_id: item.id,
+      run_id: item.payload?.harness?.run_id || null,
+      kind: item.kind,
+      match_count: Number(item.payload.safety.output_redaction.match_count || 0),
+      marker: item.payload.safety.output_redaction.marker || SECRET_REDACTION,
+      createdAt: item.createdAt
+    }));
+  const outputRedactionMatches = outputRedactionEvents.reduce((sum, item) => sum + item.match_count, 0);
   const importSafety = project?.summary?.safetyReview || {
     status: "not_applicable",
     risk_types: [],
@@ -2738,6 +2749,8 @@ function computeMetrics(store, projectId) {
     agent_runs: answers.filter((item) => item.kind === "agent_impact").length,
     high_risk_questions: answers.filter((item) => JSON.stringify(item.payload).includes("high")).length,
     guardrail_hits: answers.filter((item) => item.payload?.safety?.status === "needs_review").length,
+    output_redaction_runs: outputRedactionEvents.length,
+    output_redaction_matches: outputRedactionMatches,
     memory_confirmations: suggestions.filter((item) => item.status === "confirmed").length,
     fallback_runs: answers.filter((item) => item.payload?.harness?.fallback_used).length,
     harness_run_snapshots: projectHarnessRuns.length,
@@ -2764,6 +2777,7 @@ function computeMetrics(store, projectId) {
     import_sensitive_files: importSafety.sensitive_files || [],
     recent_harness_runs: recentHarnessRuns,
     recent_safety_events: recentSafetyEvents,
+    recent_redaction_events: outputRedactionEvents.slice(-8).reverse(),
     recent_memory_events: recentMemoryEvents,
     top_failure_reasons: Object.entries(counts)
       .filter(([type]) => type !== "helpful")

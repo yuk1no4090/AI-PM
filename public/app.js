@@ -1452,6 +1452,19 @@ function recentSafetyEvents(items = []) {
   `;
 }
 
+function recentRedactionEvents(items = []) {
+  if (!items.length) return `<p class="empty-inline">No redactions yet.</p>`;
+  return html`
+    <div class="feedback-log">
+      ${items.map((item) => `<div>
+        <code>${escapeHtml(String(item.run_id || item.answer_id || "").slice(0, 18))}</code>
+        <span>${escapeHtml(item.kind || "answer")} | ${escapeHtml(String(item.marker || "[REDACTED_SECRET]"))}</span>
+        <span>${escapeHtml(`${item.match_count || 0} matches`)}</span>
+      </div>`).join("")}
+    </div>
+  `;
+}
+
 function recentMemoryEvents(items = []) {
   if (!items.length) return `<p class="empty-inline">No memory events yet.</p>`;
   return html`
@@ -1480,6 +1493,8 @@ function dashboardPage() {
     agent_runs: 0,
     high_risk_questions: 0,
     guardrail_hits: 0,
+    output_redaction_runs: 0,
+    output_redaction_matches: 0,
     memory_confirmations: 0,
     fallback_runs: 0,
     harness_run_snapshots: 0,
@@ -1504,6 +1519,7 @@ function dashboardPage() {
     fallback_reasons: [],
     recent_harness_runs: [],
     recent_safety_events: [],
+    recent_redaction_events: [],
     recent_memory_events: [],
     top_failure_reasons: [],
     recent_feedback: []
@@ -1517,6 +1533,8 @@ function dashboardPage() {
     [c.dashboard.negative, `${metrics.negative_feedback_rate}%`],
     [c.dashboard.highRisk, metrics.high_risk_questions],
     [c.dashboard.guardrailHits, metrics.guardrail_hits || 0],
+    ["Output Redactions", metrics.output_redaction_runs || 0],
+    ["Redacted Matches", metrics.output_redaction_matches || 0],
     [c.dashboard.memorySaves, metrics.memory_confirmations || 0],
     [c.dashboard.fallbackRuns, metrics.fallback_runs || 0],
     ["Harness Snapshots", metrics.harness_run_snapshots || 0],
@@ -1598,6 +1616,10 @@ function dashboardPage() {
         <section class="panel span-2">
           <h2>${c.dashboard.recentSafety}</h2>
           ${recentSafetyEvents(metrics.recent_safety_events)}
+        </section>
+        <section class="panel span-2">
+          <h2>Recent Redactions</h2>
+          ${recentRedactionEvents(metrics.recent_redaction_events)}
         </section>
         <section class="panel span-2">
           <h2>${c.dashboard.recentMemory}</h2>

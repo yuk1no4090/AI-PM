@@ -434,6 +434,10 @@ async function runLlmSchemaFallbackSmoke() {
     assert(chatSchemaFallback.payload.harness.model_adapter.error_code === "LLM_SCHEMA_INVALID", "invalid chat schema should report LLM_SCHEMA_INVALID");
     assert(chatSchemaFallback.payload.harness.fallback_used === true, "invalid chat schema should fallback");
     assert(chatSchemaFallback.payload.safety.status === "passed", "safe chat fallback should pass safety checks");
+    const redactionEvaluation = await requestTo(baseUrl, `/api/evaluation?projectId=${encodeURIComponent(projectId)}`);
+    assert(redactionEvaluation.metrics.output_redaction_runs >= 1, "evaluation did not count output redaction runs");
+    assert(redactionEvaluation.metrics.output_redaction_matches >= 1, "evaluation did not count output redaction matches");
+    assert(redactionEvaluation.metrics.recent_redaction_events.some((item) => item.answer_id === sensitiveOutput.answerId && item.match_count >= 1), "evaluation did not expose recent output redaction event");
     return {
       fakeLlmRequests: fakeLlm.getRequestCount(),
       schemaErrors: result.payload.harness.model_adapter.schema_errors,
@@ -1253,6 +1257,9 @@ async function main() {
     const evaluation = await request(`/api/evaluation?projectId=${encodeURIComponent(projectId)}`);
     assert(evaluation.metrics.agent_runs >= 8, "evaluation did not count agent runs");
     assert(evaluation.metrics.guardrail_hits >= 1, "evaluation did not count safety guardrail hits");
+    assert(Number.isFinite(evaluation.metrics.output_redaction_runs), "evaluation did not report output redaction run count");
+    assert(Number.isFinite(evaluation.metrics.output_redaction_matches), "evaluation did not report output redaction match count");
+    assert(Array.isArray(evaluation.metrics.recent_redaction_events), "evaluation did not report recent redaction events");
     assert(evaluation.metrics.memory_confirmations >= 1, "evaluation did not count memory confirmations");
     assert(evaluation.metrics.fallback_runs >= 1, "evaluation did not count offline fallback runs");
     assert(evaluation.metrics.average_response_time_ms >= 0, "evaluation did not report average response time");

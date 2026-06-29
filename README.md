@@ -156,7 +156,7 @@ Common API errors include:
 - `harness`: LangGraph runtime, run id, model mode, model adapter, executed steps, duration, fallback status, fallback reason, schema status, budgets, budget status, read-only tool registry, model error codes, and errors.
 - `safety`: aggregate safety status, risk types, and guardrail checks.
 
-Evaluation metrics are scoped to the requested `projectId`, so safety status, memory status, recent memory events, harness runtime, model mode, tool policy, budget status, schema status, LLM usage, trace tool usage, fallback, response-time counts, recent safety events, recent harness runs, and recent feedback run correlation reflect the currently selected imported repository. Metrics ignore unknown feedback types so old or manually edited store data cannot pollute quality rates and failure-reason counts.
+Evaluation metrics are scoped to the requested `projectId`, so safety status, output redaction counts, recent redaction events, memory status, recent memory events, harness runtime, model mode, tool policy, budget status, schema status, LLM usage, trace tool usage, fallback, response-time counts, recent safety events, recent harness runs, and recent feedback run correlation reflect the currently selected imported repository. Metrics ignore unknown feedback types so old or manually edited store data cannot pollute quality rates and failure-reason counts.
 
 Memory confirmations, ignored suggestions, selective forgets, and full preference clears are recorded under `memoryEvents` so preference changes remain auditable without writing unconfirmed suggestions into long-lived memory.
 

@@ -99,6 +99,8 @@ It also derives `recent_memory_events` from project-owned memory suggestions. Ea
 
 The evaluation payload also exposes `safety_status_counts` and `memory_status_counts`, so the dashboard can distinguish passed versus review-needed safety outcomes and pending versus confirmed or ignored memory suggestions.
 
+For harness observability, the evaluation payload exposes `harness_runtime_counts` and `model_mode_counts`, derived only from answers with harness metadata.
+
 `withWorkflowTimeout()` enforces the graph timeout. Timeout failures use the same deterministic fallback path as other workflow failures.
 
 `LLM_REQUEST_TIMEOUT_MS` controls individual model call timeouts for both the LangGraph workflow and the direct chat harness.

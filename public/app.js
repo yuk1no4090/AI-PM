@@ -216,6 +216,8 @@ const copy = {
       safetyRisks: "Safety Risk Types",
       safetyStatus: "Safety Status",
       memoryStatus: "Memory Status",
+      harnessRuntime: "Harness Runtime",
+      modelMode: "Model Mode",
       fallbackReasons: "Fallback Reasons",
       recentSafety: "Recent Safety Events",
       recentMemory: "Recent Memory Events",
@@ -425,6 +427,8 @@ const copy = {
       safetyRisks: "安全风险类型",
       safetyStatus: "安全状态",
       memoryStatus: "记忆状态",
+      harnessRuntime: "Harness 运行时",
+      modelMode: "模型模式",
       fallbackReasons: "Fallback 原因",
       recentSafety: "最近安全事件",
       recentMemory: "最近记忆事件",
@@ -1377,6 +1381,8 @@ function dashboardPage() {
     safety_risk_counts: [],
     safety_status_counts: [],
     memory_status_counts: [],
+    harness_runtime_counts: [],
+    model_mode_counts: [],
     fallback_reasons: [],
     recent_harness_runs: [],
     recent_safety_events: [],
@@ -1428,6 +1434,14 @@ function dashboardPage() {
         <section class="panel">
           <h2>${c.dashboard.memoryStatus}</h2>
           ${rankedBars(metrics.memory_status_counts)}
+        </section>
+        <section class="panel">
+          <h2>${c.dashboard.harnessRuntime}</h2>
+          ${rankedBars(metrics.harness_runtime_counts)}
+        </section>
+        <section class="panel">
+          <h2>${c.dashboard.modelMode}</h2>
+          ${rankedBars(metrics.model_mode_counts)}
         </section>
         <section class="panel span-2">
           <h2>${c.dashboard.recentSafety}</h2>

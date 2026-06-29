@@ -2195,6 +2195,18 @@ function computeMetrics(store, projectId) {
     acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {});
+  const harnessRuntimeCounts = answers.reduce((acc, item) => {
+    const runtime = item.payload?.harness?.runtime;
+    if (!runtime) return acc;
+    acc[runtime] = (acc[runtime] || 0) + 1;
+    return acc;
+  }, {});
+  const modelModeCounts = answers.reduce((acc, item) => {
+    const mode = item.payload?.harness?.model_mode;
+    if (!mode) return acc;
+    acc[mode] = (acc[mode] || 0) + 1;
+    return acc;
+  }, {});
   const fallbackReasonCounts = answers.reduce((acc, item) => {
     if (!item.payload?.harness?.fallback_used) return acc;
     const reason = item.payload.harness.model_adapter?.error_code
@@ -2268,6 +2280,8 @@ function computeMetrics(store, projectId) {
     safety_risk_counts: rankCounts(safetyRiskCounts),
     safety_status_counts: rankCounts(safetyStatusCounts),
     memory_status_counts: rankCounts(memoryStatusCounts),
+    harness_runtime_counts: rankCounts(harnessRuntimeCounts),
+    model_mode_counts: rankCounts(modelModeCounts),
     fallback_reasons: rankCounts(fallbackReasonCounts),
     recent_harness_runs: recentHarnessRuns,
     recent_safety_events: recentSafetyEvents,

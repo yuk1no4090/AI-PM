@@ -7,6 +7,7 @@ const requiredTopLevelFields = [
   "questions",
   "answers",
   "feedback",
+  "harnessRuns",
   "userPreferences",
   "memorySuggestions"
 ];
@@ -38,7 +39,9 @@ const arrayNormalizationChecks = [
   "normalized.userPreferences.focusAreas = Array.isArray(normalized.userPreferences.focusAreas)",
   "normalized.userPreferences.taskTypes = Array.isArray(normalized.userPreferences.taskTypes)",
   "normalized.memorySuggestions = Array.isArray(normalized.memorySuggestions)",
-  "normalized.memorySuggestions.map(normalizeMemorySuggestion).filter(Boolean)"
+  "normalized.memorySuggestions.map(normalizeMemorySuggestion).filter(Boolean)",
+  "normalized.harnessRuns = Array.isArray(normalized.harnessRuns)",
+  "normalized.harnessRuns.map(normalizeHarnessRun).filter(Boolean)"
 ];
 
 const missingArrayNormalization = arrayNormalizationChecks.filter((snippet) => {
@@ -53,7 +56,18 @@ const requiredSuggestionNormalizationSnippets = [
   "createdAt: item.createdAt || new Date().toISOString()"
 ];
 
+const requiredHarnessRunNormalizationSnippets = [
+  "function normalizeHarnessRun",
+  "run_id: runId",
+  "trace_tools",
+  "function recordHarnessRun",
+  "function createHarnessRunSnapshot"
+];
+
 const missingSuggestionNormalization = requiredSuggestionNormalizationSnippets.filter((snippet) => {
+  return !serverSource.includes(snippet);
+});
+const missingHarnessRunNormalization = requiredHarnessRunNormalizationSnippets.filter((snippet) => {
   return !serverSource.includes(snippet);
 });
 
@@ -107,6 +121,7 @@ if (
   || missingPreferenceFields.length
   || missingArrayNormalization.length
   || missingSuggestionNormalization.length
+  || missingHarnessRunNormalization.length
   || missingMemoryEndpointSnippets.length
 ) {
   console.error(JSON.stringify({
@@ -114,6 +129,7 @@ if (
     missingPreferenceFields,
     missingArrayNormalization,
     missingSuggestionNormalization,
+    missingHarnessRunNormalization,
     missingMemoryEndpointSnippets
   }, null, 2));
   throw new Error("Store schema normalization is incomplete.");
@@ -125,5 +141,6 @@ console.log(JSON.stringify({
   preferenceFields: requiredPreferenceFields.length,
   arrayNormalizationChecks: arrayNormalizationChecks.length,
   suggestionNormalizationChecks: requiredSuggestionNormalizationSnippets.length,
+  harnessRunNormalizationChecks: requiredHarnessRunNormalizationSnippets.length,
   memoryEndpointChecks: requiredMemoryEndpointSnippets.length
 }, null, 2));

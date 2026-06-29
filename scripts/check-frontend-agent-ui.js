@@ -107,6 +107,8 @@ const requiredDashboardSnippets = [
   "c.dashboard.traceTools",
   "recent_harness_runs",
   "recentHarnessRuns(metrics.recent_harness_runs)",
+  "harness_run_snapshots",
+  "Harness Snapshots",
   "recent_safety_events",
   "recentSafetyEvents(metrics.recent_safety_events)",
   "c.dashboard.recentSafety",

@@ -383,12 +383,36 @@ function normalizeMemorySuggestion(item) {
   };
 }
 
+function normalizeHarnessRun(item) {
+  if (!item || typeof item !== "object") return null;
+  const runId = typeof item.run_id === "string" && item.run_id ? item.run_id : null;
+  if (!runId) return null;
+  return {
+    run_id: runId,
+    projectId: typeof item.projectId === "string" ? item.projectId : null,
+    answer_id: typeof item.answer_id === "string" ? item.answer_id : null,
+    kind: typeof item.kind === "string" ? item.kind : "unknown",
+    runtime: typeof item.runtime === "string" ? item.runtime : "unknown",
+    model_mode: typeof item.model_mode === "string" ? item.model_mode : "unknown",
+    duration_ms: Number.isFinite(Number(item.duration_ms)) ? Number(item.duration_ms) : 0,
+    fallback_used: !!item.fallback_used,
+    fallback_reason: item.fallback_reason || null,
+    safety_status: typeof item.safety_status === "string" ? item.safety_status : "not_applicable",
+    risk_types: Array.isArray(item.risk_types) ? item.risk_types.filter((value) => typeof value === "string") : [],
+    trace_tools: Array.isArray(item.trace_tools) ? item.trace_tools.filter((value) => typeof value === "string") : [],
+    createdAt: item.createdAt || new Date().toISOString()
+  };
+}
+
 function normalizeStore(store) {
   const normalized = store && typeof store === "object" ? store : {};
   normalized.projects ||= [];
   normalized.questions ||= [];
   normalized.answers ||= [];
   normalized.feedback ||= [];
+  normalized.harnessRuns = Array.isArray(normalized.harnessRuns)
+    ? normalized.harnessRuns.map(normalizeHarnessRun).filter(Boolean)
+    : [];
   normalized.userPreferences = {
     ...createEmptyPreferences(),
     ...(normalized.userPreferences || {})
@@ -1960,6 +1984,34 @@ function buildOnboardingHarnessReport({ runId, started, trace, errors = [] }) {
   };
 }
 
+function createHarnessRunSnapshot(answerRecord) {
+  const harness = answerRecord.payload?.harness;
+  if (!harness?.run_id) return null;
+  return normalizeHarnessRun({
+    run_id: harness.run_id,
+    projectId: answerRecord.projectId,
+    answer_id: answerRecord.id,
+    kind: answerRecord.kind,
+    runtime: harness.runtime,
+    model_mode: harness.model_mode,
+    duration_ms: harness.duration_ms,
+    fallback_used: harness.fallback_used,
+    fallback_reason: harness.fallback_reason,
+    safety_status: answerRecord.payload?.safety?.status || "not_applicable",
+    risk_types: answerRecord.payload?.safety?.risk_types || [],
+    trace_tools: (answerRecord.payload?.trace || []).map((step) => step.tool).filter(Boolean),
+    createdAt: answerRecord.createdAt
+  });
+}
+
+function recordHarnessRun(store, answerRecord) {
+  const snapshot = createHarnessRunSnapshot(answerRecord);
+  if (!snapshot) return null;
+  store.harnessRuns = (store.harnessRuns || []).filter((item) => item.run_id !== snapshot.run_id);
+  store.harnessRuns.push(snapshot);
+  return snapshot;
+}
+
 function withWorkflowTimeout(promise, timeoutMs) {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -2475,23 +2527,15 @@ function computeMetrics(store, projectId) {
     .slice(0, 5)
     .map(([type, count]) => ({ type, count }));
   const answersById = new Map(answers.map((item) => [item.id, item]));
-  const recentHarnessRuns = answers
-    .filter((item) => item.payload?.harness?.run_id)
+  const projectHarnessRuns = (store.harnessRuns || []).filter((item) => item.projectId === projectId);
+  const recentHarnessRuns = (projectHarnessRuns.length
+    ? projectHarnessRuns
+    : answers
+      .filter((item) => item.payload?.harness?.run_id)
+      .map((item) => createHarnessRunSnapshot(item))
+      .filter(Boolean))
     .slice(-8)
-    .reverse()
-    .map((item) => ({
-      run_id: item.payload.harness.run_id,
-      answer_id: item.id,
-      kind: item.kind,
-      runtime: item.payload.harness.runtime,
-      model_mode: item.payload.harness.model_mode,
-      duration_ms: item.payload.harness.duration_ms,
-      fallback_used: !!item.payload.harness.fallback_used,
-      fallback_reason: item.payload.harness.fallback_reason || null,
-      safety_status: item.payload?.safety?.status || "not_applicable",
-      risk_types: item.payload?.safety?.risk_types || [],
-      createdAt: item.createdAt
-    }));
+    .reverse();
   const recentSafetyEvents = answers
     .filter((item) => item.payload?.safety?.status === "needs_review" || item.payload?.safety?.risk_types?.length)
     .slice(-8)
@@ -2530,6 +2574,7 @@ function computeMetrics(store, projectId) {
     guardrail_hits: answers.filter((item) => item.payload?.safety?.status === "needs_review").length,
     memory_confirmations: suggestions.filter((item) => item.status === "confirmed").length,
     fallback_runs: answers.filter((item) => item.payload?.harness?.fallback_used).length,
+    harness_run_snapshots: projectHarnessRuns.length,
     average_response_time_ms: responseTimes.length
       ? Math.round(responseTimes.reduce((sum, value) => sum + value, 0) / responseTimes.length)
       : 0,
@@ -2803,6 +2848,7 @@ async function handleApiUnlocked(req, res, pathname) {
       };
       store.questions.push(questionRecord);
       store.answers.push(answerRecord);
+      recordHarnessRun(store, answerRecord);
       if (memorySuggestions.length) {
         store.memorySuggestions.push(...memorySuggestions);
       }
@@ -2885,6 +2931,7 @@ async function handleApiUnlocked(req, res, pathname) {
       };
       store.questions.push(questionRecord);
       store.answers.push(answerRecord);
+      recordHarnessRun(store, answerRecord);
       if (memorySuggestions.length) {
         store.memorySuggestions.push(...memorySuggestions);
       }
@@ -2921,6 +2968,7 @@ async function handleApiUnlocked(req, res, pathname) {
       };
       store.questions.push(questionRecord);
       store.answers.push(answerRecord);
+      recordHarnessRun(store, answerRecord);
       await saveStore(store);
       sendJson(res, 200, { answerId: answerRecord.id, kind: "agent_impact", payload });
       return;

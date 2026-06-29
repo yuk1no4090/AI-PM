@@ -62,6 +62,7 @@ const requiredErrorDocSnippets = [
   "harness runtime, model mode, tool policy, budget status, schema status, LLM usage, and trace tool distribution",
   "fallback reason distribution",
   "recent harness runs",
+  "harness snapshot count",
   "recent feedback run correlation",
   "git commit",
   "Node runtime",
@@ -92,6 +93,7 @@ const requiredEvaluationMetricSnippets = [
   "import_sensitive_file_count",
   "fallback_reasons",
   "recent_harness_runs",
+  "harness_run_snapshots",
   "rankCounts(safetyRiskCounts)",
   "rankCounts(fallbackReasonCounts)"
 ];

@@ -1413,6 +1413,7 @@ function dashboardPage() {
     guardrail_hits: 0,
     memory_confirmations: 0,
     fallback_runs: 0,
+    harness_run_snapshots: 0,
     average_response_time_ms: 0,
     safety_risk_counts: [],
     safety_status_counts: [],
@@ -1449,6 +1450,7 @@ function dashboardPage() {
     [c.dashboard.guardrailHits, metrics.guardrail_hits || 0],
     [c.dashboard.memorySaves, metrics.memory_confirmations || 0],
     [c.dashboard.fallbackRuns, metrics.fallback_runs || 0],
+    ["Harness Snapshots", metrics.harness_run_snapshots || 0],
     [c.dashboard.avgResponse, `${metrics.average_response_time_ms || 0}ms`]
   ];
   const citationStatusLabel = c.dashboard.citationStatus || "引用状态";

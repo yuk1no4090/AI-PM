@@ -552,6 +552,7 @@ async function runStorePathSmoke() {
     const store = JSON.parse(await readFile(storePath, "utf8"));
     assert(Array.isArray(store.projects), "custom STORE_PATH did not create normalized store projects array");
     assert(Array.isArray(store.memorySuggestions), "custom STORE_PATH did not create normalized memorySuggestions array");
+    assert(Array.isArray(store.harnessRuns), "custom STORE_PATH did not create normalized harnessRuns array");
     return { customStorePathCreated: true };
   } catch (error) {
     console.error(stdout);
@@ -1236,6 +1237,7 @@ async function main() {
     assert(evaluation.metrics.safety_status_counts.some((item) => item.type === "needs_review"), "evaluation did not count needs_review safety status");
     assert(Array.isArray(evaluation.metrics.recent_safety_events), "evaluation did not report recent safety events");
     assert(Array.isArray(evaluation.metrics.harness_runtime_counts), "evaluation did not report harness runtime counts");
+    assert(evaluation.metrics.harness_run_snapshots >= 3, "evaluation did not report persisted harness run snapshots");
     assert(evaluation.metrics.harness_runtime_counts.some((item) => item.type === "LangGraph StateGraph"), "evaluation did not count LangGraph runtime");
     assert(evaluation.metrics.harness_runtime_counts.some((item) => item.type === "Direct Chat Harness"), "evaluation did not count direct chat runtime");
     assert(evaluation.metrics.harness_runtime_counts.some((item) => item.type === "Onboarding Harness"), "evaluation did not count onboarding runtime");
@@ -1258,6 +1260,7 @@ async function main() {
     assert(Array.isArray(evaluation.metrics.recent_harness_runs), "evaluation did not report recent harness runs");
     assert(evaluation.metrics.recent_harness_runs.some((item) => /^agent_[0-9a-f-]{36}$/.test(item.run_id || "")), "recent harness runs did not include an agent run id");
     assert(evaluation.metrics.recent_harness_runs.some((item) => /^chat_[0-9a-f-]{36}$/.test(item.run_id || "")), "recent harness runs did not include a chat run id");
+    assert(evaluation.metrics.recent_harness_runs.some((item) => Array.isArray(item.trace_tools) && item.trace_tools.length > 0), "recent harness run snapshots did not include trace tools");
     assert(evaluation.metrics.safety_risk_counts.some((item) => item.type === "prompt_injection"), "evaluation did not count prompt injection risk type");
     assert(evaluation.metrics.recent_safety_events.some((item) => {
       return item.answer_id && (item.risk_types || []).includes("prompt_injection");

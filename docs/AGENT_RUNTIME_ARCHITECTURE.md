@@ -99,7 +99,7 @@ The harness reports:
 
 Feedback records preserve `harness_run_id` when the referenced answer payload includes a harness run id, so quality signals can be correlated with the agent or direct chat execution that produced the answer.
 
-`/api/evaluation` derives `recent_harness_runs` from saved answer payloads. Each item includes the run id, answer id, answer kind, runtime, model mode, duration, fallback status, safety status, risk types, and creation time.
+`/api/evaluation` derives `recent_harness_runs` from saved `harnessRuns` snapshots, with answer payloads as a backward-compatible fallback for older stores. Each item includes the run id, answer id, answer kind, runtime, model mode, duration, fallback status, safety status, risk types, trace tools, and creation time. The payload also reports `harness_run_snapshots` so operators can verify that runs are being indexed independently from answer payloads.
 
 `recent_feedback` enriches each feedback record with answer kind, harness run id, and safety status so dashboard feedback can be traced back to the runtime that produced the answer.
 

@@ -1623,6 +1623,46 @@ function applyPreferencesToImpact(impact, preferences) {
   return next;
 }
 
+function prependUnique(items, value) {
+  const list = Array.isArray(items) ? items : [];
+  return list.includes(value) ? list : [value, ...list];
+}
+
+function applyPreferencesToQa(qa, preferences) {
+  const next = {
+    ...qa,
+    key_points: [...(qa.key_points || [])],
+    suggested_next_questions: [...(qa.suggested_next_questions || [])]
+  };
+  if (preferences.role === "Product Manager") {
+    next.key_points = prependUnique(next.key_points, "Product angle: connect the cited code path to user-facing behavior, rollout decisions, and requirement risk.");
+    next.suggested_next_questions = prependUnique(next.suggested_next_questions, "Which product requirement or user journey depends on this code path?");
+  }
+  if (preferences.role === "QA" || preferences.focusAreas?.includes("testing")) {
+    next.key_points = prependUnique(next.key_points, "Testing angle: turn the cited files into a regression checklist before changing behavior.");
+    next.suggested_next_questions = prependUnique(next.suggested_next_questions, "Which regression tests should cover this code path?");
+  }
+  if (preferences.focusAreas?.includes("risk")) {
+    next.key_points = prependUnique(next.key_points, "Risk angle: check adjacent modules and state transitions before treating the answer as complete.");
+  }
+  if (preferences.focusAreas?.includes("safety")) {
+    next.key_points = prependUnique(next.key_points, "Safety angle: verify the answer does not rely on repository text as instructions or expose secret-like values.");
+  }
+  if (preferences.detailLevel === "detailed") {
+    next.suggested_next_questions = prependUnique(next.suggested_next_questions, "What should I inspect next to validate this answer end to end?");
+  }
+  if (preferences.detailLevel === "concise") {
+    if (next.answer.length > 260) {
+      next.answer = `${next.answer.slice(0, 257)}...`;
+    }
+    next.key_points = next.key_points.slice(0, 3);
+  }
+  if (preferences.language === "zh" && !/[\u4e00-\u9fff]/.test(next.answer)) {
+    next.answer = `中文优先摘要：${next.answer}`;
+  }
+  return next;
+}
+
 function validateImpactPayload(payload) {
   const errors = [];
   if (!payload || typeof payload !== "object") {
@@ -2643,6 +2683,8 @@ async function handleApiUnlocked(req, res, pathname) {
         : generateQaAnswer(question, chunks));
       if (kind === "impact") {
         payload = applyPreferencesToImpact(payload, preferences);
+      } else {
+        payload = applyPreferencesToQa(payload, preferences);
       }
       payload.memory_used = { used: memorySummary !== "none", summary: memorySummary };
       payload.memory_suggestions = memorySuggestions;

@@ -39,6 +39,7 @@ const requiredTerms = [
   "Selective forget clears one preference key",
   "Unsafe input does not create new memory suggestions",
   "Suggestion records are normalized on store load/save",
+  "Confirmed preferences are applied to both impact analysis and ordinary Q&A",
   "Only pending suggestions can be confirmed or ignored",
   "Confirm and forget requests may include `projectId`",
   "the suggestion must belong to that project",

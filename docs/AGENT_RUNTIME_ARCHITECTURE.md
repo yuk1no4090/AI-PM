@@ -51,6 +51,8 @@ Memory suggestions are stored separately under `memorySuggestions`. The system m
 
 The Copilot inspector uses `GET /api/memory` plus `POST /api/memory/forget` as a lightweight memory manager. It shows confirmed preferences and lets the user remove one key/value pair or clear all preferences without creating a separate page.
 
+Confirmed preferences are applied to both impact analysis and ordinary Q&A. Product Manager, QA, focus-area, language, and detail-level preferences can change answer emphasis, suggested next questions, and concise/detailed shaping after schema validation and before safety checks.
+
 Suggestion records are normalized on store load/save so missing ids, timestamps, confidence values, and invalid statuses cannot destabilize the UI or metrics. Only pending suggestions can be confirmed or ignored. Confirm and forget requests may include `projectId`; when supplied, the suggestion must belong to that project or the request is rejected. Unknown preference keys are rejected instead of falling back to full memory deletion. Unknown preference values are rejected instead of writing arbitrary values into long-lived preferences. Ignored suggestions suppress the same key/value suggestion from being repeated. Selective forget clears one preference key while preserving the rest of the confirmed preference memory. Unsafe input does not create new memory suggestions; existing confirmed preferences may still be applied.
 
 Memory API errors return `{ error, code }` so the UI and tests can distinguish user-visible copy from machine-readable state. The memory boundary currently uses `MEMORY_SUGGESTION_NOT_FOUND`, `MEMORY_SUGGESTION_NOT_PENDING`, `MEMORY_PROJECT_MISMATCH`, and `UNKNOWN_MEMORY_PREFERENCE_KEY`.

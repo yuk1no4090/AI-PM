@@ -954,6 +954,19 @@ async function main() {
     assert(rememberedChatImpact.payload.open_questions.some((item) => item.includes("user-facing requirement")), "direct chat impact did not apply product manager memory");
     assert(/^chat_[0-9a-f-]{36}$/.test(rememberedChatImpact.payload?.harness?.run_id || ""), "direct chat harness did not report a stable run_id");
     assert(rememberedChatImpact.payload.harness.runtime === "Direct Chat Harness", "direct chat impact did not report chat harness");
+    const rememberedQa = await request("/api/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        projectId,
+        kind: "qa",
+        question: "Where is order creation logic for checkout?"
+      })
+    });
+    assert(rememberedQa.payload?.memory_used?.used === true, "confirmed memory was not reported by direct chat qa");
+    assert(rememberedQa.payload.memory_used.summary.includes("Product Manager"), "direct chat qa did not report role memory");
+    assert(rememberedQa.payload.key_points.some((item) => item.includes("Product angle")), "direct chat qa did not apply product manager memory to key points");
+    assert(rememberedQa.payload.suggested_next_questions.some((item) => item.includes("product requirement")), "direct chat qa did not apply product manager memory to next questions");
+    assert(rememberedQa.payload.answer.length <= 260, "direct chat qa did not apply concise detail memory");
     const chatMemorySuggestion = await request("/api/chat", {
       method: "POST",
       body: JSON.stringify({

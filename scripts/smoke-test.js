@@ -554,6 +554,7 @@ async function runStorePathSmoke() {
     const store = JSON.parse(await readFile(storePath, "utf8"));
     assert(Array.isArray(store.projects), "custom STORE_PATH did not create normalized store projects array");
     assert(Array.isArray(store.memorySuggestions), "custom STORE_PATH did not create normalized memorySuggestions array");
+    assert(Array.isArray(store.memoryEvents), "custom STORE_PATH did not create normalized memoryEvents array");
     assert(Array.isArray(store.harnessRuns), "custom STORE_PATH did not create normalized harnessRuns array");
     return { customStorePathCreated: true };
   } catch (error) {
@@ -946,6 +947,8 @@ async function main() {
     assert(suggestionIds.every((suggestionId) => {
       return memory.suggestions.some((item) => item.id === suggestionId && item.status === "confirmed");
     }), "confirmed memory not visible");
+    assert(Array.isArray(memory.events), "memory API did not expose memory events");
+    assert(memory.events.some((item) => item.action === "confirmed" && item.status === "confirmed" && suggestionIds.includes(item.suggestionId)), "confirmed memory event not visible");
     assert(memory.preferences.role || memory.preferences.detailLevel || memory.preferences.focusAreas.length, "confirmed memory did not update preferences");
 
     const remembered = await request("/api/agent-impact", {
@@ -1014,10 +1017,11 @@ async function main() {
 
     const forgotDetail = await request("/api/memory/forget", {
       method: "POST",
-      body: JSON.stringify({ key: "detailLevel" })
+      body: JSON.stringify({ projectId, key: "detailLevel" })
     });
     assert(forgotDetail.preferences.role === "Product Manager", "selective forget should preserve role preference");
     assert(!forgotDetail.preferences.detailLevel, "selective forget did not clear detailLevel preference");
+    assert(forgotDetail.events.some((item) => item.action === "forgot_preference" && item.key === "detailLevel" && item.status === "forgotten"), "selective forget did not create memory audit event");
     const afterSelectiveForget = await request("/api/agent-impact", {
       method: "POST",
       body: JSON.stringify({
@@ -1250,6 +1254,7 @@ async function main() {
     assert(evaluation.metrics.memory_status_counts.some((item) => item.type === "confirmed"), "evaluation did not count confirmed memory status");
     assert(Array.isArray(evaluation.metrics.recent_memory_events), "evaluation did not report recent memory events");
     assert(evaluation.metrics.recent_memory_events.some((item) => item.key && item.status), "recent memory events did not include preference details");
+    assert(evaluation.metrics.recent_memory_events.some((item) => item.action === "forgot_preference" && item.status === "forgotten"), "recent memory events did not include forget audit event");
     assert(Array.isArray(evaluation.metrics.safety_risk_counts), "evaluation did not report safety risk counts");
     assert(Array.isArray(evaluation.metrics.safety_status_counts), "evaluation did not report safety status counts");
     assert(evaluation.metrics.safety_status_counts.some((item) => item.type === "needs_review"), "evaluation did not count needs_review safety status");

@@ -408,6 +408,22 @@ function normalizeMemorySuggestion(item) {
   };
 }
 
+function normalizeMemoryEvent(item) {
+  if (!item || typeof item !== "object") return null;
+  const action = typeof item.action === "string" ? item.action : "memory_event";
+  return {
+    id: item.id || crypto.randomUUID(),
+    projectId: typeof item.projectId === "string" ? item.projectId : null,
+    suggestionId: typeof item.suggestionId === "string" ? item.suggestionId : null,
+    action,
+    key: typeof item.key === "string" ? item.key : null,
+    value: typeof item.value === "string" ? item.value : null,
+    label: typeof item.label === "string" ? item.label : action,
+    status: typeof item.status === "string" ? item.status : action,
+    createdAt: item.createdAt || new Date().toISOString()
+  };
+}
+
 function normalizeHarnessRun(item) {
   if (!item || typeof item !== "object") return null;
   const runId = typeof item.run_id === "string" && item.run_id ? item.run_id : null;
@@ -456,6 +472,9 @@ function normalizeStore(store) {
   if (!isKnownMemoryValue("detailLevel", normalized.userPreferences.detailLevel)) normalized.userPreferences.detailLevel = null;
   normalized.memorySuggestions = Array.isArray(normalized.memorySuggestions)
     ? normalized.memorySuggestions.map(normalizeMemorySuggestion).filter(Boolean)
+    : [];
+  normalized.memoryEvents = Array.isArray(normalized.memoryEvents)
+    ? normalized.memoryEvents.map(normalizeMemoryEvent).filter(Boolean)
     : [];
   return normalized;
 }
@@ -1684,6 +1703,20 @@ function applyMemorySuggestion(preferences, suggestion) {
   return next;
 }
 
+function createMemoryEvent({ projectId = null, suggestion = null, action, key = null, value = null, label = null, status = null }) {
+  return {
+    id: crypto.randomUUID(),
+    projectId: suggestion?.projectId || projectId || null,
+    suggestionId: suggestion?.id || null,
+    action,
+    key: suggestion?.key || key || null,
+    value: suggestion?.value || value || null,
+    label: suggestion?.label || label || action,
+    status: status || action,
+    createdAt: new Date().toISOString()
+  };
+}
+
 function summarizePreferences(preferences) {
   const active = [];
   if (preferences.role) active.push(`role=${preferences.role}`);
@@ -2599,6 +2632,9 @@ function computeMetrics(store, projectId) {
     .map(([type, count]) => ({ type, count }));
   const answersById = new Map(answers.map((item) => [item.id, item]));
   const projectHarnessRuns = (store.harnessRuns || []).filter((item) => item.projectId === projectId);
+  const projectMemoryEvents = (store.memoryEvents || []).filter((item) => {
+    return !projectId || item.projectId === projectId || item.projectId == null;
+  });
   const recentHarnessRuns = (projectHarnessRuns.length
     ? projectHarnessRuns
     : answers
@@ -2622,16 +2658,20 @@ function computeMetrics(store, projectId) {
         .map((guardrail) => guardrail.name),
       createdAt: item.createdAt
     }));
-  const recentMemoryEvents = suggestions
+  const recentMemoryEvents = (projectMemoryEvents.length
+    ? projectMemoryEvents
+    : suggestions)
     .slice(-8)
     .reverse()
     .map((item) => ({
       id: item.id,
+      suggestionId: item.suggestionId || null,
+      action: item.action || item.status,
       key: item.key,
       value: item.value,
       label: item.label,
       status: item.status,
-      confidence: item.confidence,
+      confidence: item.confidence || null,
       createdAt: item.createdAt
     }));
   return {
@@ -2722,9 +2762,14 @@ async function handleApiUnlocked(req, res, pathname) {
         .filter((item) => !projectId || item.projectId === projectId)
         .slice(-20)
         .reverse();
+      const events = (store.memoryEvents || [])
+        .filter((item) => !projectId || item.projectId === projectId || item.projectId == null)
+        .slice(-20)
+        .reverse();
       sendJson(res, 200, {
         preferences: store.userPreferences,
-        suggestions
+        suggestions,
+        events
       });
       return;
     }
@@ -2739,10 +2784,16 @@ async function handleApiUnlocked(req, res, pathname) {
       store.userPreferences = applyMemorySuggestion(store.userPreferences, suggestion);
       suggestion.status = "confirmed";
       suggestion.confirmedAt = new Date().toISOString();
+      store.memoryEvents.push(createMemoryEvent({
+        suggestion,
+        action: "confirmed",
+        status: "confirmed"
+      }));
       await saveStore(store);
       sendJson(res, 200, {
         preferences: store.userPreferences,
-        suggestion
+        suggestion,
+        event: store.memoryEvents.at(-1)
       });
       return;
     }
@@ -2756,7 +2807,13 @@ async function handleApiUnlocked(req, res, pathname) {
         if (suggestion.status !== "pending") throw apiError("Memory suggestion is not pending.", "MEMORY_SUGGESTION_NOT_PENDING");
         suggestion.status = "ignored";
         suggestion.ignoredAt = new Date().toISOString();
+        store.memoryEvents.push(createMemoryEvent({
+          suggestion,
+          action: "ignored",
+          status: "ignored"
+        }));
       } else if (body.key) {
+        if (body.projectId) findProject(store, body.projectId);
         if (!MEMORY_PREFERENCE_KEYS.has(body.key)) throw apiError("Unknown memory preference key.", "UNKNOWN_MEMORY_PREFERENCE_KEY");
         if (body.value && !isKnownMemoryValue(body.key, body.value)) throw apiError("Unknown memory preference value.", "UNKNOWN_MEMORY_PREFERENCE_VALUE");
         if (Array.isArray(store.userPreferences[body.key])) {
@@ -2767,13 +2824,29 @@ async function handleApiUnlocked(req, res, pathname) {
           store.userPreferences[body.key] = null;
         }
         store.userPreferences.updatedAt = new Date().toISOString();
+        store.memoryEvents.push(createMemoryEvent({
+          projectId: body.projectId || null,
+          action: "forgot_preference",
+          key: body.key,
+          value: body.value || null,
+          label: body.value ? `Forgot ${body.key}: ${body.value}` : `Forgot ${body.key}`,
+          status: "forgotten"
+        }));
       } else {
+        if (body.projectId) findProject(store, body.projectId);
         store.userPreferences = createEmptyPreferences();
+        store.memoryEvents.push(createMemoryEvent({
+          projectId: body.projectId || null,
+          action: "cleared_preferences",
+          label: "Cleared all user preferences",
+          status: "cleared"
+        }));
       }
       await saveStore(store);
       sendJson(res, 200, {
         preferences: store.userPreferences,
-        suggestions: store.memorySuggestions.slice(-20).reverse()
+        suggestions: store.memorySuggestions.slice(-20).reverse(),
+        events: store.memoryEvents.slice(-20).reverse()
       });
       return;
     }

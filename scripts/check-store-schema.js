@@ -9,7 +9,8 @@ const requiredTopLevelFields = [
   "feedback",
   "harnessRuns",
   "userPreferences",
-  "memorySuggestions"
+  "memorySuggestions",
+  "memoryEvents"
 ];
 
 const requiredPreferenceFields = [
@@ -40,6 +41,8 @@ const arrayNormalizationChecks = [
   "normalized.userPreferences.taskTypes = Array.isArray(normalized.userPreferences.taskTypes)",
   "normalized.memorySuggestions = Array.isArray(normalized.memorySuggestions)",
   "normalized.memorySuggestions.map(normalizeMemorySuggestion).filter(Boolean)",
+  "normalized.memoryEvents = Array.isArray(normalized.memoryEvents)",
+  "normalized.memoryEvents.map(normalizeMemoryEvent).filter(Boolean)",
   "normalized.harnessRuns = Array.isArray(normalized.harnessRuns)",
   "normalized.harnessRuns.map(normalizeHarnessRun).filter(Boolean)"
 ];
@@ -65,10 +68,21 @@ const requiredHarnessRunNormalizationSnippets = [
   "function createHarnessRunSnapshot"
 ];
 
+const requiredMemoryEventNormalizationSnippets = [
+  "function normalizeMemoryEvent",
+  "function createMemoryEvent",
+  "suggestionId",
+  "action",
+  "store.memoryEvents.push(createMemoryEvent"
+];
+
 const missingSuggestionNormalization = requiredSuggestionNormalizationSnippets.filter((snippet) => {
   return !serverSource.includes(snippet);
 });
 const missingHarnessRunNormalization = requiredHarnessRunNormalizationSnippets.filter((snippet) => {
+  return !serverSource.includes(snippet);
+});
+const missingMemoryEventNormalization = requiredMemoryEventNormalizationSnippets.filter((snippet) => {
   return !serverSource.includes(snippet);
 });
 
@@ -122,6 +136,7 @@ if (
   || missingPreferenceFields.length
   || missingArrayNormalization.length
   || missingSuggestionNormalization.length
+  || missingMemoryEventNormalization.length
   || missingHarnessRunNormalization.length
   || missingMemoryEndpointSnippets.length
 ) {
@@ -130,6 +145,7 @@ if (
     missingPreferenceFields,
     missingArrayNormalization,
     missingSuggestionNormalization,
+    missingMemoryEventNormalization,
     missingHarnessRunNormalization,
     missingMemoryEndpointSnippets
   }, null, 2));
@@ -142,6 +158,7 @@ console.log(JSON.stringify({
   preferenceFields: requiredPreferenceFields.length,
   arrayNormalizationChecks: arrayNormalizationChecks.length,
   suggestionNormalizationChecks: requiredSuggestionNormalizationSnippets.length,
+  memoryEventNormalizationChecks: requiredMemoryEventNormalizationSnippets.length,
   harnessRunNormalizationChecks: requiredHarnessRunNormalizationSnippets.length,
   memoryEndpointChecks: requiredMemoryEndpointSnippets.length
 }, null, 2));

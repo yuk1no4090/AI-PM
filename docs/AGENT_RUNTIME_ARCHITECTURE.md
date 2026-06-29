@@ -49,6 +49,8 @@ Supported preference fields:
 
 Memory suggestions are stored separately under `memorySuggestions`. The system may suggest memory from recent Agent Workflow or Direct Chat usage, but only `POST /api/memory/confirm` writes the value into long-lived preferences. `POST /api/memory/forget` can ignore one pending suggestion, clear one known preference key, or clear all preferences.
 
+Memory mutations are also recorded under `memoryEvents`. Confirming, ignoring, selectively forgetting, or clearing preferences creates a lightweight audit event with project id, suggestion id when available, action, preference key/value, status, and timestamp. `GET /api/memory` returns recent events alongside preferences and suggestions.
+
 The Copilot inspector uses `GET /api/memory` plus `POST /api/memory/forget` as a lightweight memory manager. It shows confirmed preferences and lets the user remove one key/value pair or clear all preferences without creating a separate page.
 
 Confirmed preferences are applied to both impact analysis and ordinary Q&A. Product Manager, QA, focus-area, language, and detail-level preferences can change answer emphasis, suggested next questions, and concise/detailed shaping after schema validation and before safety checks.
@@ -109,7 +111,7 @@ The same evaluation payload derives `recent_safety_events` from saved answers wi
 
 Safety payloads include `risk_details`, a normalized explanation list derived from `risk_types`, so the UI and harness audit can show why a risk was flagged without hard-coding descriptions in the frontend. Output safety scans the raw generated payload before finalization, then recursively redacts credential-like strings before answers and harness snapshots are stored or returned.
 
-It also derives `recent_memory_events` from project-owned memory suggestions. Each item includes the suggestion id, preference key/value, display label, status, confidence, and creation time.
+It also derives `recent_memory_events` from project-owned memory audit events, with memory suggestions as a backward-compatible fallback for older stores. Each item includes action, suggestion id when available, preference key/value, display label, status, and creation time.
 
 The evaluation payload also exposes `safety_status_counts`, `import_safety_status`, `import_safety_risk_counts`, and `memory_status_counts`, so the dashboard can distinguish passed versus review-needed safety outcomes, import-time safety findings, and pending versus confirmed or ignored memory suggestions.
 

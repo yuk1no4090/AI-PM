@@ -357,7 +357,7 @@ const MEMORY_VALUE_OPTIONS = {
   focusAreas: new Set(["testing", "risk", "safety"]),
   taskTypes: new Set(["impact_analysis"])
 };
-const SENSITIVE_VALUE_PATTERN = /(sk-[A-Za-z0-9_-]{12,}|AKIA[0-9A-Z]{16}|BEGIN PRIVATE KEY|api[_-]?key["']?\s*[:=])/i;
+const SENSITIVE_VALUE_PATTERN = /(sk-[A-Za-z0-9_-]{12,}|AKIA[0-9A-Z]{16}|BEGIN PRIVATE KEY|(?:api[_-]?key|apikey|token|password|credential|secret)["']?\s*[:=]\s*(?:"[^"]{8,}"|'[^']{8,}'|[A-Za-z0-9_./+-]*\d[A-Za-z0-9_./+-]{7,}))/i;
 const SECRET_REDACTION = "[REDACTED_SECRET]";
 
 function normalizeMemorySuggestion(item) {
@@ -942,7 +942,8 @@ function redactSensitiveText(text) {
     .replace(/sk-[A-Za-z0-9_-]{12,}/g, SECRET_REDACTION)
     .replace(/AKIA[0-9A-Z]{16}/g, SECRET_REDACTION)
     .replace(/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, SECRET_REDACTION)
-    .replace(/\b([A-Z0-9_]*API[_-]?KEY)\b\s*[:=]\s*["'][^"']+["']/gi, "$1 = \"[REDACTED_SECRET]\"");
+    .replace(/\b([A-Za-z0-9_]*(?:api[_-]?key|apikey|token|password|credential|secret)[A-Za-z0-9_]*)\b\s*[:=]\s*["'][^"']+["']/gi, "$1 = \"[REDACTED_SECRET]\"")
+    .replace(/\b([A-Za-z0-9_]*(?:api[_-]?key|apikey|token|password|credential|secret)[A-Za-z0-9_]*)\b\s*[:=]\s*([A-Za-z0-9_./+-]*\d[A-Za-z0-9_./+-]{7,})/gi, "$1 = [REDACTED_SECRET]");
 }
 
 async function maybeCallOpenAI({ question, chunks, kind, project }) {

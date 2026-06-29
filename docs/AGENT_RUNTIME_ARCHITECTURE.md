@@ -66,7 +66,7 @@ It supports OpenAI-compatible chat completions through:
 - `OPENAI_MODEL`
 - `LLM_REQUEST_TIMEOUT_MS`
 
-If no API key is configured, the model adapter reports deterministic offline retrieval. If a model response times out, fails transport, returns a non-2xx HTTP response, returns invalid JSON, or fails schema validation, the workflow uses deterministic fallback and records the failure under `harness.model_adapter.error_code`, `error`, `http_status`, `duration_ms`, and `schema_errors` when applicable. Repository chunks are scanned in raw form for safety, but sensitive-looking values are redacted before the retrieved context is sent to an external model.
+If no API key is configured, the model adapter reports deterministic offline retrieval. If a model response times out, fails transport, returns a non-2xx HTTP response, returns invalid JSON, or fails schema validation, the workflow uses deterministic fallback and records the failure under `harness.model_adapter.error_code`, `error`, `http_status`, `duration_ms`, and `schema_errors` when applicable. Repository chunks are scanned in raw form for safety, but sensitive-looking values such as API keys, tokens, passwords, credentials, and secrets are redacted before the retrieved context is sent to an external model.
 
 ## agentHarness
 

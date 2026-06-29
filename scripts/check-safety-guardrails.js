@@ -18,6 +18,8 @@ const requiredServerSnippets = [
   "retrieved_prompt_injection",
   "retrieved_sensitive_content",
   "SENSITIVE_VALUE_PATTERN",
+  "password|credential|secret",
+  "api[_-]?key|apikey|token|password|credential|secret",
   "function redactSensitiveText",
   "SECRET_REDACTION",
   "function scanOutputSafety",

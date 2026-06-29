@@ -378,7 +378,7 @@ async function runLlmSchemaFallbackSmoke() {
       body: JSON.stringify({
         zipBase64: createZipBase64({
           "README.md": "# LLM Redaction Fixture\n\nUsed to verify model prompt redaction.",
-          "src/config/secrets.ts": "export const OPENAI_API_KEY = \"sk-llmprompt1234567890\";\nexport const mode = \"test\";"
+          "src/config/secrets.ts": "export const OPENAI_API_KEY = \"sk-llmprompt1234567890\";\nexport const apiKey = \"camelcase-secret-12345\";\nexport const serviceToken = \"token-secret-67890\";\nexport const dbPassword = \"password-secret-24680\";\nexport const mode = \"test\";"
         }),
         fileName: "llm-redaction-fixture.zip"
       })
@@ -394,6 +394,9 @@ async function runLlmSchemaFallbackSmoke() {
     });
     const combinedUserPrompts = fakeLlm.getUserContents().join("\n\n");
     assert(!combinedUserPrompts.includes("sk-llmprompt1234567890"), "LLM prompt should not include raw retrieved secret-like values");
+    assert(!combinedUserPrompts.includes("camelcase-secret-12345"), "LLM prompt should not include raw camelCase apiKey values");
+    assert(!combinedUserPrompts.includes("token-secret-67890"), "LLM prompt should not include raw token values");
+    assert(!combinedUserPrompts.includes("password-secret-24680"), "LLM prompt should not include raw password values");
     assert(combinedUserPrompts.includes("[REDACTED_SECRET]"), "LLM prompt should include redaction marker for secret-like values");
     const timeoutResult = await requestTo(baseUrl, "/api/agent-impact", {
       method: "POST",

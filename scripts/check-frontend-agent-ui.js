@@ -72,6 +72,10 @@ const missingMemoryActionSnippets = requiredMemoryActionSnippets.filter((snippet
 const requiredDashboardSnippets = [
   "recent_harness_runs",
   "recentHarnessRuns(metrics.recent_harness_runs)",
+  "recent_safety_events",
+  "recentSafetyEvents(metrics.recent_safety_events)",
+  "c.dashboard.recentSafety",
+  "item.guardrails",
   "c.dashboard.recentRuns",
   "item.fallback_used",
   "item.safety_status"

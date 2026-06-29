@@ -999,11 +999,15 @@ async function main() {
     assert(evaluation.metrics.fallback_runs >= 1, "evaluation did not count offline fallback runs");
     assert(evaluation.metrics.average_response_time_ms >= 0, "evaluation did not report average response time");
     assert(Array.isArray(evaluation.metrics.safety_risk_counts), "evaluation did not report safety risk counts");
+    assert(Array.isArray(evaluation.metrics.recent_safety_events), "evaluation did not report recent safety events");
     assert(Array.isArray(evaluation.metrics.fallback_reasons), "evaluation did not report fallback reasons");
     assert(Array.isArray(evaluation.metrics.recent_harness_runs), "evaluation did not report recent harness runs");
     assert(evaluation.metrics.recent_harness_runs.some((item) => /^agent_[0-9a-f-]{36}$/.test(item.run_id || "")), "recent harness runs did not include an agent run id");
     assert(evaluation.metrics.recent_harness_runs.some((item) => /^chat_[0-9a-f-]{36}$/.test(item.run_id || "")), "recent harness runs did not include a chat run id");
     assert(evaluation.metrics.safety_risk_counts.some((item) => item.type === "prompt_injection"), "evaluation did not count prompt injection risk type");
+    assert(evaluation.metrics.recent_safety_events.some((item) => {
+      return item.answer_id && (item.risk_types || []).includes("prompt_injection");
+    }), "recent safety events did not include prompt injection details");
     assert(evaluation.metrics.fallback_reasons.length >= 1, "evaluation did not count fallback reason distribution");
 
     const concurrentFeedbackTypes = ["helpful", "not_helpful", "inaccurate", "missing_citation", "too_generic"];

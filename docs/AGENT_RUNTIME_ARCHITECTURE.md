@@ -93,6 +93,8 @@ Feedback records preserve `harness_run_id` when the referenced answer payload in
 
 `/api/evaluation` derives `recent_harness_runs` from saved answer payloads. Each item includes the run id, answer id, answer kind, runtime, model mode, duration, fallback status, safety status, risk types, and creation time.
 
+The same evaluation payload derives `recent_safety_events` from saved answers with `needs_review` safety status or recorded risk types. Each item includes the answer id, optional run id, answer kind, safety status, risk types, matching guardrails, and creation time.
+
 `withWorkflowTimeout()` enforces the graph timeout. Timeout failures use the same deterministic fallback path as other workflow failures.
 
 `LLM_REQUEST_TIMEOUT_MS` controls individual model call timeouts for both the LangGraph workflow and the direct chat harness.

@@ -54,6 +54,7 @@ const requiredErrorDocSnippets = [
   "Metrics ignore unknown feedback types",
   "average response time",
   "safety risk distribution",
+  "recent safety events",
   "fallback reason distribution",
   "recent harness runs",
   "git commit",
@@ -65,6 +66,7 @@ const missingReadmeErrorDocs = requiredErrorDocSnippets.filter((snippet) => !rea
 const requiredEvaluationMetricSnippets = [
   "average_response_time_ms",
   "safety_risk_counts",
+  "recent_safety_events",
   "fallback_reasons",
   "recent_harness_runs",
   "rankCounts(safetyRiskCounts)",

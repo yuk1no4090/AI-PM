@@ -215,6 +215,7 @@ const copy = {
       failures: "Top Failure Reasons",
       safetyRisks: "Safety Risk Types",
       fallbackReasons: "Fallback Reasons",
+      recentSafety: "Recent Safety Events",
       recentRuns: "Recent Harness Runs",
       recent: "Recent Feedback",
       signals: "Product iteration signals",
@@ -420,6 +421,7 @@ const copy = {
       failures: "主要失败原因",
       safetyRisks: "安全风险类型",
       fallbackReasons: "Fallback 原因",
+      recentSafety: "最近安全事件",
       recentRuns: "最近运行",
       recent: "最近反馈",
       signals: "产品迭代信号",
@@ -1318,6 +1320,23 @@ function recentHarnessRuns(items = []) {
   `;
 }
 
+function recentSafetyEvents(items = []) {
+  if (!items.length) return `<p class="empty-inline">No safety events yet.</p>`;
+  return html`
+    <div class="feedback-log">
+      ${items.map((item) => {
+        const risks = (item.risk_types || []).slice(0, 3).join(", ") || item.safety_status || "unknown";
+        const guardrails = (item.guardrails || []).slice(0, 2).join(", ");
+        return `<div>
+          <code>${escapeHtml(String(item.run_id || item.answer_id || "").slice(0, 18))}</code>
+          <span>${escapeHtml(item.kind || "answer")} | ${escapeHtml(risks)}</span>
+          <span>${guardrails ? escapeHtml(guardrails) : escapeHtml(item.safety_status || "needs review")}</span>
+        </div>`;
+      }).join("")}
+    </div>
+  `;
+}
+
 function dashboardPage() {
   if (!state.project) return emptyProject("Import a repository before viewing evaluation metrics.");
   const c = t();
@@ -1336,6 +1355,7 @@ function dashboardPage() {
     safety_risk_counts: [],
     fallback_reasons: [],
     recent_harness_runs: [],
+    recent_safety_events: [],
     top_failure_reasons: [],
     recent_feedback: []
   };
@@ -1375,6 +1395,10 @@ function dashboardPage() {
         <section class="panel">
           <h2>${c.dashboard.safetyRisks}</h2>
           ${rankedBars(metrics.safety_risk_counts)}
+        </section>
+        <section class="panel span-2">
+          <h2>${c.dashboard.recentSafety}</h2>
+          ${recentSafetyEvents(metrics.recent_safety_events)}
         </section>
         <section class="panel">
           <h2>${c.dashboard.fallbackReasons}</h2>

@@ -107,7 +107,7 @@ The same evaluation payload derives `recent_safety_events` from saved answers wi
 
 It also derives `recent_memory_events` from project-owned memory suggestions. Each item includes the suggestion id, preference key/value, display label, status, confidence, and creation time.
 
-The evaluation payload also exposes `safety_status_counts` and `memory_status_counts`, so the dashboard can distinguish passed versus review-needed safety outcomes and pending versus confirmed or ignored memory suggestions.
+The evaluation payload also exposes `safety_status_counts`, `import_safety_status`, `import_safety_risk_counts`, and `memory_status_counts`, so the dashboard can distinguish passed versus review-needed safety outcomes, import-time safety findings, and pending versus confirmed or ignored memory suggestions.
 
 For harness observability, the evaluation payload exposes `harness_runtime_counts`, `model_mode_counts`, `tool_policy_counts`, `budget_status_counts`, `schema_status_counts`, `llm_usage_counts`, and `trace_tool_counts`, derived from saved harness metadata and trace steps.
 

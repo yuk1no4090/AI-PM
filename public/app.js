@@ -1425,6 +1425,12 @@ function dashboardPage() {
     schema_status_counts: [],
     llm_usage_counts: [],
     trace_tool_counts: [],
+    import_safety_status: "not_applicable",
+    import_safety_risk_counts: [],
+    import_prompt_risk_file_count: 0,
+    import_sensitive_file_count: 0,
+    import_prompt_risk_files: [],
+    import_sensitive_files: [],
     fallback_reasons: [],
     recent_harness_runs: [],
     recent_safety_events: [],
@@ -1469,6 +1475,14 @@ function dashboardPage() {
         <section class="panel">
           <h2>${c.dashboard.safetyRisks}</h2>
           ${rankedBars(metrics.safety_risk_counts)}
+        </section>
+        <section class="panel">
+          <h2>Import Safety</h2>
+          <div class="evidence-stats">
+            <div><strong>${escapeHtml(metrics.import_safety_status || "not_applicable")}</strong><span>${escapeHtml((metrics.import_safety_risk_counts || []).map((item) => item.type).join(", ") || "no risks")}</span></div>
+            <div><strong>${metrics.import_prompt_risk_file_count || 0}</strong><span>prompt-risk files</span></div>
+            <div><strong>${metrics.import_sensitive_file_count || 0}</strong><span>sensitive files</span></div>
+          </div>
         </section>
         <section class="panel">
           <h2>${c.dashboard.safetyStatus}</h2>

@@ -1147,6 +1147,9 @@ async function main() {
     const maliciousEvaluation = await request(`/api/evaluation?projectId=${encodeURIComponent(maliciousProjectId)}`);
     assert(maliciousEvaluation.metrics.agent_runs >= 1, "malicious project evaluation did not count agent run");
     assert(maliciousEvaluation.metrics.guardrail_hits >= 1, "malicious project evaluation did not count retrieved-context guardrail hit");
+    assert(maliciousEvaluation.metrics.import_safety_status === "needs_review", "malicious project evaluation did not report import safety status");
+    assert(maliciousEvaluation.metrics.import_safety_risk_counts.some((item) => item.type === "import_prompt_injection"), "malicious project evaluation did not count import prompt-injection risk");
+    assert(maliciousEvaluation.metrics.import_prompt_risk_file_count === 1, "malicious project evaluation did not count prompt-risk files");
 
     const sensitiveRepoImport = await request("/api/import", {
       method: "POST",
@@ -1171,6 +1174,10 @@ async function main() {
     assert(retrievedSensitive.payload.safety.risk_types.includes("retrieved_sensitive_content"), "retrieved sensitive content risk not reported");
     assert(retrievedSensitive.payload.guardrails.some((item) => item.name === "Retrieved context safety" && item.status === "needs_review"), "retrieved sensitive context guardrail not surfaced");
     assert(JSON.stringify(retrievedSensitive.payload).includes("sk-smokerepo1234567890") === false, "agent payload should not echo raw retrieved secret-like values");
+    const sensitiveEvaluation = await request(`/api/evaluation?projectId=${encodeURIComponent(sensitiveProjectId)}`);
+    assert(sensitiveEvaluation.metrics.import_safety_status === "needs_review", "sensitive project evaluation did not report import safety status");
+    assert(sensitiveEvaluation.metrics.import_safety_risk_counts.some((item) => item.type === "import_sensitive_content"), "sensitive project evaluation did not count import sensitive-content risk");
+    assert(sensitiveEvaluation.metrics.import_sensitive_file_count === 1, "sensitive project evaluation did not count sensitive files");
 
     const qa = await request("/api/chat", {
       method: "POST",

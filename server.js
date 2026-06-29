@@ -2458,6 +2458,18 @@ function computeMetrics(store, projectId) {
     acc[reason] = (acc[reason] || 0) + 1;
     return acc;
   }, {});
+  const importSafety = project?.summary?.safetyReview || {
+    status: "not_applicable",
+    risk_types: [],
+    prompt_injection_file_count: 0,
+    sensitive_file_count: 0,
+    prompt_injection_files: [],
+    sensitive_files: []
+  };
+  const importSafetyRiskCounts = (importSafety.risk_types || []).reduce((acc, riskType) => {
+    acc[riskType] = (acc[riskType] || 0) + 1;
+    return acc;
+  }, {});
   const rankCounts = (items) => Object.entries(items)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
@@ -2533,6 +2545,12 @@ function computeMetrics(store, projectId) {
     trace_tool_counts: rankCounts(traceToolCounts),
     citation_status_counts: rankCounts(citationStatusCounts),
     fallback_reasons: rankCounts(fallbackReasonCounts),
+    import_safety_status: importSafety.status || "not_applicable",
+    import_safety_risk_counts: rankCounts(importSafetyRiskCounts),
+    import_prompt_risk_file_count: importSafety.prompt_injection_file_count || 0,
+    import_sensitive_file_count: importSafety.sensitive_file_count || 0,
+    import_prompt_risk_files: importSafety.prompt_injection_files || [],
+    import_sensitive_files: importSafety.sensitive_files || [],
     recent_harness_runs: recentHarnessRuns,
     recent_safety_events: recentSafetyEvents,
     recent_memory_events: recentMemoryEvents,

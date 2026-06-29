@@ -216,6 +216,7 @@ const copy = {
       safetyRisks: "Safety Risk Types",
       fallbackReasons: "Fallback Reasons",
       recentSafety: "Recent Safety Events",
+      recentMemory: "Recent Memory Events",
       recentRuns: "Recent Harness Runs",
       recent: "Recent Feedback",
       signals: "Product iteration signals",
@@ -422,6 +423,7 @@ const copy = {
       safetyRisks: "安全风险类型",
       fallbackReasons: "Fallback 原因",
       recentSafety: "最近安全事件",
+      recentMemory: "最近记忆事件",
       recentRuns: "最近运行",
       recent: "最近反馈",
       signals: "产品迭代信号",
@@ -1337,6 +1339,22 @@ function recentSafetyEvents(items = []) {
   `;
 }
 
+function recentMemoryEvents(items = []) {
+  if (!items.length) return `<p class="empty-inline">No memory events yet.</p>`;
+  return html`
+    <div class="feedback-log">
+      ${items.map((item) => {
+        const preference = [item.key, item.value].filter(Boolean).join(": ");
+        return `<div>
+          <code>${escapeHtml(item.status || "pending")}</code>
+          <span>${escapeHtml(preference || item.label || "memory")}</span>
+          <span>${escapeHtml(item.confidence || "medium")}</span>
+        </div>`;
+      }).join("")}
+    </div>
+  `;
+}
+
 function dashboardPage() {
   if (!state.project) return emptyProject("Import a repository before viewing evaluation metrics.");
   const c = t();
@@ -1356,6 +1374,7 @@ function dashboardPage() {
     fallback_reasons: [],
     recent_harness_runs: [],
     recent_safety_events: [],
+    recent_memory_events: [],
     top_failure_reasons: [],
     recent_feedback: []
   };
@@ -1399,6 +1418,10 @@ function dashboardPage() {
         <section class="panel span-2">
           <h2>${c.dashboard.recentSafety}</h2>
           ${recentSafetyEvents(metrics.recent_safety_events)}
+        </section>
+        <section class="panel span-2">
+          <h2>${c.dashboard.recentMemory}</h2>
+          ${recentMemoryEvents(metrics.recent_memory_events)}
         </section>
         <section class="panel">
           <h2>${c.dashboard.fallbackReasons}</h2>

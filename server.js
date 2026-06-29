@@ -2229,6 +2229,18 @@ function computeMetrics(store, projectId) {
         .map((guardrail) => guardrail.name),
       createdAt: item.createdAt
     }));
+  const recentMemoryEvents = suggestions
+    .slice(-8)
+    .reverse()
+    .map((item) => ({
+      id: item.id,
+      key: item.key,
+      value: item.value,
+      label: item.label,
+      status: item.status,
+      confidence: item.confidence,
+      createdAt: item.createdAt
+    }));
   return {
     total_questions: questions.length,
     helpful_rate: feedback.length ? Math.round((helpful / feedback.length) * 100) : 0,
@@ -2247,6 +2259,7 @@ function computeMetrics(store, projectId) {
     fallback_reasons: rankCounts(fallbackReasonCounts),
     recent_harness_runs: recentHarnessRuns,
     recent_safety_events: recentSafetyEvents,
+    recent_memory_events: recentMemoryEvents,
     top_failure_reasons: Object.entries(counts)
       .filter(([type]) => type !== "helpful")
       .sort((a, b) => b[1] - a[1])

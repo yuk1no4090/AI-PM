@@ -62,6 +62,8 @@ const requiredRuntimeSnippets = [
   "function buildAgentHarnessReport",
   "function buildChatHarnessReport",
   "function createHarnessRunId",
+  "function safetyChecksToGuardrails",
+  "payload.guardrails = safetyChecksToGuardrails(safety.checks)",
   "harness_run_id",
   "runModelAdapter({",
   "buildAgentHarnessReport({",

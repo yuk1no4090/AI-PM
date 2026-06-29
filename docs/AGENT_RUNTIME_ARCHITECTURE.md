@@ -27,7 +27,7 @@ input_safety
 
 Each node appends trace metadata so the UI can show the agent path instead of hiding the workflow.
 
-`/api/chat` is not a LangGraph workflow. It uses a lighter `Direct Chat Harness` that reuses the same model adapter, schema validation, trace shape, deterministic fallback, confirmed `memory_used` reporting, read-only tool policy, and input/retrieval/output safety reports. This keeps the existing chat API compatible while making ordinary Q&A and standard impact analysis observable through the same harness fields.
+`/api/chat` is not a LangGraph workflow. It uses a lighter `Direct Chat Harness` that reuses the same model adapter, schema validation, trace shape, deterministic fallback, confirmed `memory_used` reporting, read-only tool policy, input/retrieval/output safety reports, and guardrail detail format. This keeps the existing chat API compatible while making ordinary Q&A and standard impact analysis observable through the same harness fields.
 
 ## Memory Boundary
 

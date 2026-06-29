@@ -77,7 +77,7 @@ Without an API key, the app falls back to a deterministic retrieval-based answer
 
 - Repository import from public GitHub URL, ZIP upload, or built-in sample repository.
 - Project overview with inferred stack, directory tree, core modules, README summary, and recommended first reads.
-- Repository Q&A with related files, uncertainty, suggested next questions, feedback buttons, lightweight harness metadata, and safety status.
+- Repository Q&A with related files, uncertainty, suggested next questions, feedback buttons, lightweight harness metadata, safety status, and guardrail details.
 - Impact analysis with impacted modules, risk level, testing suggestions, and open questions.
 - Agent Workflow tab backed by a LangGraph StateGraph with classifier, retriever, context expansion, impact analysis, QA planning, memory, safety guardrails, and structured synthesis.
 - User preference memory suggestions that require explicit confirmation before being saved. Confirmed preferences are global to the local app instance; suggestions carry project ownership so confirmation/ignore actions can verify the active project. Ignored suggestions suppress the same key/value suggestion from being repeated. The Copilot inspector includes a lightweight preference memory manager for viewing, removing one preference value, or clearing all preferences.
@@ -100,7 +100,7 @@ input safety
   -> structured synthesizer
 ```
 
-The `modelAdapter` boundary uses an OpenAI-compatible chat completions call when configured and otherwise reports deterministic offline retrieval. LLM transport failures, timeouts, HTTP errors, invalid JSON, and schema errors are reported through `harness.model_adapter` before the deterministic fallback is used. The `agentHarness` boundary records runtime metadata for each agent run: run id, model mode, provider, adapter, executed steps, duration, fallback status, fallback reason, schema status, budgets, budget status, read-only tool registry, and errors. `/api/chat` uses a lighter `Direct Chat Harness` with the same model adapter, schema validation, trace shape, fallback metadata, `memory_used`, and input/retrieval/output safety reports. Feedback records preserve `harness_run_id` when the answer came from an observable harness run. Repository files are treated as untrusted evidence; retrieved text is never promoted into system instructions. Sensitive-looking values are redacted before repository context is sent to a model.
+The `modelAdapter` boundary uses an OpenAI-compatible chat completions call when configured and otherwise reports deterministic offline retrieval. LLM transport failures, timeouts, HTTP errors, invalid JSON, and schema errors are reported through `harness.model_adapter` before the deterministic fallback is used. The `agentHarness` boundary records runtime metadata for each agent run: run id, model mode, provider, adapter, executed steps, duration, fallback status, fallback reason, schema status, budgets, budget status, read-only tool registry, and errors. `/api/chat` uses a lighter `Direct Chat Harness` with the same model adapter, schema validation, trace shape, deterministic fallback metadata, `memory_used`, input/retrieval/output safety reports, and guardrail details. Feedback records preserve `harness_run_id` when the answer came from an observable harness run. Repository files are treated as untrusted evidence; retrieved text is never promoted into system instructions. Sensitive-looking values are redacted before repository context is sent to a model.
 
 ## API Surface
 

@@ -1451,6 +1451,14 @@ function mergeSafetyReports(...reports) {
   };
 }
 
+function safetyChecksToGuardrails(checks = []) {
+  return checks.map((check) => ({
+    name: check.name,
+    status: check.passed ? "passed" : "needs_review",
+    detail: check.detail
+  }));
+}
+
 function inferPreferenceSignals(question) {
   const lower = question.toLowerCase();
   const signals = [];
@@ -1979,11 +1987,7 @@ function createAgentGraph() {
       ]);
       const safety = mergeSafetyReports(state.inputSafety, state.retrievedSafety, state.outputSafety, toolSafety);
       const guardrails = [
-        ...(state.outputSafety.checks || []).map((check) => ({
-          name: check.name,
-          status: check.passed ? "passed" : "needs_review",
-          detail: check.detail
-        })),
+        ...safetyChecksToGuardrails(state.outputSafety.checks || []),
         {
           name: "Input safety",
           status: state.inputSafety.status,
@@ -2550,6 +2554,7 @@ async function handleApiUnlocked(req, res, pathname) {
       const safety = mergeSafetyReports(inputSafety, retrievedSafety, outputSafety, toolSafety);
       payload.trace = trace;
       payload.safety = safety;
+      payload.guardrails = safetyChecksToGuardrails(safety.checks);
       payload.harness = buildChatHarnessReport({
         runId,
         started,

@@ -1013,6 +1013,8 @@ async function main() {
     assert(evaluation.metrics.model_mode_counts.some((item) => item.type === "offline retrieval"), "evaluation did not count offline model mode");
     assert(Array.isArray(evaluation.metrics.tool_policy_counts), "evaluation did not report tool policy counts");
     assert(evaluation.metrics.tool_policy_counts.some((item) => item.type === "read-only"), "evaluation did not count read-only tool policy");
+    assert(Array.isArray(evaluation.metrics.budget_status_counts), "evaluation did not report budget status counts");
+    assert(evaluation.metrics.budget_status_counts.some((item) => item.type === "within_budget"), "evaluation did not count within-budget runs");
     assert(Array.isArray(evaluation.metrics.fallback_reasons), "evaluation did not report fallback reasons");
     assert(Array.isArray(evaluation.metrics.recent_harness_runs), "evaluation did not report recent harness runs");
     assert(evaluation.metrics.recent_harness_runs.some((item) => /^agent_[0-9a-f-]{36}$/.test(item.run_id || "")), "recent harness runs did not include an agent run id");

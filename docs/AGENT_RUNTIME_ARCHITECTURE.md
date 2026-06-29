@@ -99,7 +99,7 @@ It also derives `recent_memory_events` from project-owned memory suggestions. Ea
 
 The evaluation payload also exposes `safety_status_counts` and `memory_status_counts`, so the dashboard can distinguish passed versus review-needed safety outcomes and pending versus confirmed or ignored memory suggestions.
 
-For harness observability, the evaluation payload exposes `harness_runtime_counts`, `model_mode_counts`, and `tool_policy_counts`, derived only from answers with harness metadata.
+For harness observability, the evaluation payload exposes `harness_runtime_counts`, `model_mode_counts`, `tool_policy_counts`, and `budget_status_counts`, derived only from answers with harness metadata.
 
 `withWorkflowTimeout()` enforces the graph timeout. Timeout failures use the same deterministic fallback path as other workflow failures.
 

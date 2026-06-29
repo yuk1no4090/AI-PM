@@ -2231,6 +2231,17 @@ function computeMetrics(store, projectId) {
     acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {});
+  const llmUsageCounts = answers.reduce((acc, item) => {
+    const adapter = item.payload?.harness?.model_adapter;
+    if (!adapter) return acc;
+    const status = adapter.llm_used
+      ? "llm_used"
+      : adapter.llm_attempted
+        ? "llm_attempted_fallback"
+        : "offline_retrieval";
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
   const fallbackReasonCounts = answers.reduce((acc, item) => {
     if (!item.payload?.harness?.fallback_used) return acc;
     const reason = item.payload.harness.model_adapter?.error_code
@@ -2309,6 +2320,7 @@ function computeMetrics(store, projectId) {
     tool_policy_counts: rankCounts(toolPolicyCounts),
     budget_status_counts: rankCounts(budgetStatusCounts),
     schema_status_counts: rankCounts(schemaStatusCounts),
+    llm_usage_counts: rankCounts(llmUsageCounts),
     fallback_reasons: rankCounts(fallbackReasonCounts),
     recent_harness_runs: recentHarnessRuns,
     recent_safety_events: recentSafetyEvents,

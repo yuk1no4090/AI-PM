@@ -71,6 +71,8 @@ const requiredRuntimeSnippets = [
   "function buildChatHarnessReport",
   "function buildOnboardingHarnessReport",
   "function createHarnessRunId",
+  "function findHarnessRunAudit",
+  "GET\" && pathname === \"/api/harness-run\"",
   "function safetyChecksToGuardrails",
   "payload.guardrails = safetyChecksToGuardrails(safety.checks)",
   "harness_run_id",

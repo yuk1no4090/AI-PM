@@ -117,6 +117,7 @@ The `modelAdapter` boundary uses an OpenAI-compatible chat completions call when
 | `POST` | `/api/onboarding` | Generate role-based onboarding plan. |
 | `POST` | `/api/feedback` | Record answer feedback. |
 | `GET` | `/api/evaluation` | Return quality, memory, safety, and fallback metrics. |
+| `GET` | `/api/harness-run` | Return one persisted harness run audit by `projectId` and `runId`. |
 | `GET` | `/api/memory` | Return confirmed preferences and recent memory suggestions. |
 | `POST` | `/api/memory/confirm` | Confirm a pending memory suggestion and update preferences. |
 | `POST` | `/api/memory/forget` | Ignore a suggestion, clear one preference, or clear all preferences. |
@@ -143,6 +144,8 @@ Common API errors include:
 - `REQUEST_BODY_TOO_LARGE`
 - `QUESTION_REQUIRED`
 - `ANSWER_NOT_FOUND`
+- `RUN_ID_REQUIRED`
+- `HARNESS_RUN_NOT_FOUND`
 - `INVALID_FEEDBACK_TYPE`
 - `ROUTE_NOT_FOUND`
 
@@ -154,6 +157,8 @@ Common API errors include:
 - `safety`: aggregate safety status, risk types, and guardrail checks.
 
 Evaluation metrics are scoped to the requested `projectId`, so safety status, memory status, recent memory events, harness runtime, model mode, tool policy, budget status, schema status, LLM usage, trace tool usage, fallback, response-time counts, recent safety events, recent harness runs, and recent feedback run correlation reflect the currently selected imported repository. Metrics ignore unknown feedback types so old or manually edited store data cannot pollute quality rates and failure-reason counts.
+
+`GET /api/harness-run` returns a persisted harness run audit for one `projectId` and `runId`, including the stored run snapshot plus answer trace, harness, safety, and guardrail metadata.
 
 See [docs/AGENT_RUNTIME_ARCHITECTURE.md](docs/AGENT_RUNTIME_ARCHITECTURE.md) for the LangGraph, memory, harness, and safety implementation boundary.
 

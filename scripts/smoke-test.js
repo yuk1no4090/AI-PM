@@ -836,6 +836,19 @@ async function main() {
     assert(agent.payload.memory_suggestions.every((item) => item.status === "pending"), "new memory suggestions should be pending");
     assert((agent.payload.trace || []).some((step) => step.tool === "memory.load_preferences"), "trace missing memory node");
     assert((agent.payload.trace || []).some((step) => step.tool === "safety_guardrail_agent.validate_output"), "trace missing safety guardrail node");
+    const agentRunAudit = await request(`/api/harness-run?projectId=${encodeURIComponent(projectId)}&runId=${encodeURIComponent(agent.payload.harness.run_id)}`);
+    assert(agentRunAudit.run.run_id === agent.payload.harness.run_id, "harness run audit returned wrong run id");
+    assert(agentRunAudit.run.answer_id === agent.answerId, "harness run audit did not link answer id");
+    assert(agentRunAudit.run.runtime === "LangGraph StateGraph", "harness run audit did not preserve runtime");
+    assert(agentRunAudit.answer.harness.run_id === agent.payload.harness.run_id, "harness run audit missing answer harness");
+    assert(agentRunAudit.answer.trace.some((step) => step.tool === "safety_guardrail_agent.validate_output"), "harness run audit missing answer trace");
+    assert(agentRunAudit.answer.safety.status === "passed", "harness run audit missing safety status");
+    const missingRunId = await requestError(`/api/harness-run?projectId=${encodeURIComponent(projectId)}`);
+    assert(missingRunId.status === 400, "missing harness run id should return 400");
+    assert(missingRunId.payload.code === "RUN_ID_REQUIRED", "missing harness run id returned wrong error code");
+    const missingHarnessRun = await requestError(`/api/harness-run?projectId=${encodeURIComponent(projectId)}&runId=agent_not-real`);
+    assert(missingHarnessRun.status === 404, "missing harness run should return 404");
+    assert(missingHarnessRun.payload.code === "HARNESS_RUN_NOT_FOUND", "missing harness run returned wrong error code");
 
     const onboarding = await request("/api/onboarding", {
       method: "POST",
@@ -1339,6 +1352,8 @@ async function main() {
         missingRoute.payload.code,
         missingQuestion.payload.code,
         missingAnswer.payload.code,
+        missingRunId.payload.code,
+        missingHarnessRun.payload.code,
         invalidFeedback.payload.code
       ])],
       storePathSmoke,

@@ -101,6 +101,8 @@ Feedback records preserve `harness_run_id` when the referenced answer payload in
 
 `/api/evaluation` derives `recent_harness_runs` from saved `harnessRuns` snapshots, with answer payloads as a backward-compatible fallback for older stores. Each item includes the run id, answer id, answer kind, runtime, model mode, duration, fallback status, safety status, risk types, trace tools, and creation time. The payload also reports `harness_run_snapshots` so operators can verify that runs are being indexed independently from answer payloads.
 
+`GET /api/harness-run` returns one persisted harness run audit by `projectId` and `runId`. It is read-only and returns the run snapshot plus the answer's trace, harness, safety, and guardrail metadata when the answer is still available.
+
 `recent_feedback` enriches each feedback record with answer kind, harness run id, and safety status so dashboard feedback can be traced back to the runtime that produced the answer.
 
 The same evaluation payload derives `recent_safety_events` from saved answers with `needs_review` safety status or recorded risk types. Each item includes the answer id, optional run id, answer kind, safety status, risk types, matching guardrails, and creation time.

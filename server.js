@@ -2012,6 +2012,32 @@ function recordHarnessRun(store, answerRecord) {
   return snapshot;
 }
 
+function findHarnessRunAudit(store, projectId, runId) {
+  if (!runId) throw apiError("Run id is required.", "RUN_ID_REQUIRED");
+  findProject(store, projectId);
+  const persisted = (store.harnessRuns || []).find((item) => item.projectId === projectId && item.run_id === runId);
+  const answer = store.answers.find((item) => {
+    return item.projectId === projectId && item.payload?.harness?.run_id === runId;
+  });
+  const run = persisted || (answer ? createHarnessRunSnapshot(answer) : null);
+  if (!run) throw apiError("Harness run not found.", "HARNESS_RUN_NOT_FOUND", 404);
+  return {
+    run,
+    answer: answer
+      ? {
+          answer_id: answer.id,
+          question_id: answer.questionId,
+          kind: answer.kind,
+          createdAt: answer.createdAt,
+          harness: answer.payload?.harness || null,
+          safety: answer.payload?.safety || null,
+          guardrails: answer.payload?.guardrails || [],
+          trace: answer.payload?.trace || []
+        }
+      : null
+  };
+}
+
 function withWorkflowTimeout(promise, timeoutMs) {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -2997,6 +3023,14 @@ async function handleApiUnlocked(req, res, pathname) {
       const url = new URL(req.url, `http://${req.headers.host}`);
       const project = findProject(store, url.searchParams.get("projectId"));
       sendJson(res, 200, { metrics: computeMetrics(store, project.id) });
+      return;
+    }
+
+    if (req.method === "GET" && pathname === "/api/harness-run") {
+      const url = new URL(req.url, `http://${req.headers.host}`);
+      const project = findProject(store, url.searchParams.get("projectId"));
+      const audit = findHarnessRunAudit(store, project.id, url.searchParams.get("runId"));
+      sendJson(res, 200, audit);
       return;
     }
 

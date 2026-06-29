@@ -220,6 +220,7 @@ const copy = {
       modelMode: "Model Mode",
       toolPolicy: "Tool Policy",
       budgetStatus: "Budget Status",
+      schemaStatus: "Schema Status",
       fallbackReasons: "Fallback Reasons",
       recentSafety: "Recent Safety Events",
       recentMemory: "Recent Memory Events",
@@ -433,6 +434,7 @@ const copy = {
       modelMode: "模型模式",
       toolPolicy: "工具策略",
       budgetStatus: "预算状态",
+      schemaStatus: "Schema 状态",
       fallbackReasons: "Fallback 原因",
       recentSafety: "最近安全事件",
       recentMemory: "最近记忆事件",
@@ -1389,6 +1391,7 @@ function dashboardPage() {
     model_mode_counts: [],
     tool_policy_counts: [],
     budget_status_counts: [],
+    schema_status_counts: [],
     fallback_reasons: [],
     recent_harness_runs: [],
     recent_safety_events: [],
@@ -1456,6 +1459,10 @@ function dashboardPage() {
         <section class="panel">
           <h2>${c.dashboard.budgetStatus}</h2>
           ${rankedBars(metrics.budget_status_counts)}
+        </section>
+        <section class="panel">
+          <h2>${c.dashboard.schemaStatus}</h2>
+          ${rankedBars(metrics.schema_status_counts)}
         </section>
         <section class="panel span-2">
           <h2>${c.dashboard.recentSafety}</h2>

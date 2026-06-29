@@ -2224,6 +2224,13 @@ function computeMetrics(store, projectId) {
     acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {});
+  const schemaStatusCounts = answers.reduce((acc, item) => {
+    const harness = item.payload?.harness;
+    if (!harness) return acc;
+    const status = harness.schema_valid === false ? "schema_invalid" : "schema_valid";
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
   const fallbackReasonCounts = answers.reduce((acc, item) => {
     if (!item.payload?.harness?.fallback_used) return acc;
     const reason = item.payload.harness.model_adapter?.error_code
@@ -2301,6 +2308,7 @@ function computeMetrics(store, projectId) {
     model_mode_counts: rankCounts(modelModeCounts),
     tool_policy_counts: rankCounts(toolPolicyCounts),
     budget_status_counts: rankCounts(budgetStatusCounts),
+    schema_status_counts: rankCounts(schemaStatusCounts),
     fallback_reasons: rankCounts(fallbackReasonCounts),
     recent_harness_runs: recentHarnessRuns,
     recent_safety_events: recentSafetyEvents,

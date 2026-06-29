@@ -1397,10 +1397,7 @@ function scanOutputSafety(project, payload) {
   const citation = validateAgentCitations(project, payload);
   const serialized = JSON.stringify(payload);
   const secretLike = SENSITIVE_VALUE_PATTERN.test(serialized);
-  const refs = [
-    ...(payload.related_files || []).map((file) => file.file_path || file),
-    ...(payload.impact_areas?.flatMap((area) => area.files || []) || [])
-  ].filter(Boolean);
+  const refs = collectCitationFiles(payload);
   const impactRefs = [
     ...(payload.impact_areas?.flatMap((area) => area.files || []) || [])
   ].filter(Boolean);

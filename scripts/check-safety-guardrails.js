@@ -21,6 +21,7 @@ const requiredServerSnippets = [
   "function redactSensitiveText",
   "SECRET_REDACTION",
   "function scanOutputSafety",
+  "const refs = collectCitationFiles(payload)",
   "function isSafeRelativePath",
   "raw.startsWith(\"/\")",
   "part === \"..\"",

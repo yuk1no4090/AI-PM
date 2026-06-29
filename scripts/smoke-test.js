@@ -1079,7 +1079,10 @@ async function main() {
     assert(unsafe.payload?.safety?.status === "needs_review", "unsafe request was not flagged");
     assert(unsafe.payload.safety.risk_types.includes("prompt_injection"), "prompt injection risk not reported");
     assert(unsafe.payload.safety.risk_types.includes("secret_request"), "secret request risk not reported");
+    assert(unsafe.payload.safety.risk_details.some((item) => item.type === "prompt_injection" && item.description), "prompt injection risk details not reported");
     assert(unsafe.payload.guardrails.some((item) => item.name === "Input safety" && item.status === "needs_review"), "unsafe input guardrail not surfaced");
+    const unsafeRunAudit = await request(`/api/harness-run?projectId=${encodeURIComponent(projectId)}&runId=${encodeURIComponent(unsafe.payload.harness.run_id)}`);
+    assert(unsafeRunAudit.run.risk_details.some((item) => item.type === "prompt_injection" && item.description), "harness run audit did not preserve risk details");
     const systemPromptLeak = await request("/api/agent-impact", {
       method: "POST",
       body: JSON.stringify({

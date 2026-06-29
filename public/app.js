@@ -1373,6 +1373,7 @@ function harnessAuditPanel(audit) {
   const trace = audit.answer?.trace || [];
   const harness = audit.answer?.harness || {};
   const safety = audit.answer?.safety || {};
+  const riskDetails = audit.run?.risk_details || safety.risk_details || [];
   return html`
     <section class="panel span-3">
       <h2>Harness Run Audit</h2>
@@ -1383,6 +1384,13 @@ function harnessAuditPanel(audit) {
         <div><strong>fallback</strong><span>${escapeHtml(audit.run?.fallback_used ? "true" : "false")}</span></div>
       </div>
       <div class="trace-list compact-trace">
+        ${riskDetails.length ? `
+          <div class="trace-step">
+            <strong>Risk Details</strong>
+            <span>${escapeHtml(riskDetails.map((item) => item.type).join(", "))}</span>
+            <p>${escapeHtml(riskDetails.map((item) => item.description).join(" "))}</p>
+          </div>
+        ` : ""}
         ${renderList(trace, (step) => `
           <div class="trace-step">
             <strong>${escapeHtml(step.step || step.tool || "step")}</strong>

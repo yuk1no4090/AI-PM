@@ -114,6 +114,8 @@ const requiredDashboardSnippets = [
   "/api/harness-run?projectId=",
   "function harnessAuditPanel",
   "state.harnessAudit",
+  "risk_details",
+  "Risk Details",
   "recent_safety_events",
   "recentSafetyEvents(metrics.recent_safety_events)",
   "c.dashboard.recentSafety",

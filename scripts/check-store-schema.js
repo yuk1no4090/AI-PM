@@ -59,6 +59,7 @@ const requiredSuggestionNormalizationSnippets = [
 const requiredHarnessRunNormalizationSnippets = [
   "function normalizeHarnessRun",
   "run_id: runId",
+  "risk_details",
   "trace_tools",
   "function recordHarnessRun",
   "function createHarnessRunSnapshot"

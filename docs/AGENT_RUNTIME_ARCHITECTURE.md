@@ -107,6 +107,8 @@ Feedback records preserve `harness_run_id` when the referenced answer payload in
 
 The same evaluation payload derives `recent_safety_events` from saved answers with `needs_review` safety status or recorded risk types. Each item includes the answer id, optional run id, answer kind, safety status, risk types, matching guardrails, and creation time.
 
+Safety payloads include `risk_details`, a normalized explanation list derived from `risk_types`, so the UI and harness audit can show why a risk was flagged without hard-coding descriptions in the frontend.
+
 It also derives `recent_memory_events` from project-owned memory suggestions. Each item includes the suggestion id, preference key/value, display label, status, confidence, and creation time.
 
 The evaluation payload also exposes `safety_status_counts`, `import_safety_status`, `import_safety_risk_counts`, and `memory_status_counts`, so the dashboard can distinguish passed versus review-needed safety outcomes, import-time safety findings, and pending versus confirmed or ignored memory suggestions.

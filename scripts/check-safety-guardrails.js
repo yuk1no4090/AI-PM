@@ -8,6 +8,9 @@ const [serverSource, architectureDoc, readme] = await Promise.all([
 
 const requiredServerSnippets = [
   "function scanInputSafety",
+  "SAFETY_RISK_EXPLANATIONS",
+  "function describeSafetyRisks",
+  "risk_details: describeSafetyRisks(riskTypes)",
   "function scanImportSafety",
   "safetyReview",
   "import_prompt_injection",

@@ -368,6 +368,31 @@ const MEMORY_VALUE_OPTIONS = {
 const SENSITIVE_VALUE_PATTERN = /(sk-[A-Za-z0-9_-]{12,}|AKIA[0-9A-Z]{16}|BEGIN PRIVATE KEY|(?:api[_-]?key|apikey|token|password|credential|secret)["']?\s*[:=]\s*(?:"[^"]{8,}"|'[^']{8,}'|[A-Za-z0-9_./+-]*\d[A-Za-z0-9_./+-]{7,}))/i;
 const SECRET_REDACTION = "[REDACTED_SECRET]";
 
+const SAFETY_RISK_EXPLANATIONS = {
+  prompt_injection: "The user request appears to override system or developer instructions.",
+  secret_request: "The request asks for credentials, keys, tokens, or hidden configuration.",
+  tool_permission: "The request asks the agent to write, execute, commit, push, or otherwise exceed read-only tool permissions.",
+  unknown_agent_tool: "The trace contains a tool that is not registered in the read-only tool registry.",
+  tool_policy_violation: "The trace contains a tool or policy state that violates the read-only, no-network, no-shell boundary.",
+  retrieved_prompt_injection: "Retrieved repository content contains instruction-like text and must be treated only as untrusted evidence.",
+  retrieved_sensitive_content: "Retrieved repository content contains credential-like values that must not be echoed.",
+  missing_citation: "The output cites nonexistent files or omits required repository citations.",
+  sensitive_output: "The output contains a value that looks like a credential or secret.",
+  overconfidence: "The output lacks citations or uncertainty markers for claims that need evidence.",
+  workflow_error: "The LangGraph workflow failed and deterministic fallback was used.",
+  import_prompt_injection: "Imported repository files contain instruction-like prompt injection text.",
+  import_sensitive_content: "Imported repository files contain sensitive-looking values."
+};
+
+function describeSafetyRisks(riskTypes = []) {
+  return [...new Set(riskTypes)]
+    .filter(Boolean)
+    .map((type) => ({
+      type,
+      description: SAFETY_RISK_EXPLANATIONS[type] || "Safety review required."
+    }));
+}
+
 function normalizeMemorySuggestion(item) {
   if (!item || typeof item !== "object") return null;
   const allowedStatuses = new Set(["pending", "confirmed", "ignored"]);
@@ -399,6 +424,9 @@ function normalizeHarnessRun(item) {
     fallback_reason: item.fallback_reason || null,
     safety_status: typeof item.safety_status === "string" ? item.safety_status : "not_applicable",
     risk_types: Array.isArray(item.risk_types) ? item.risk_types.filter((value) => typeof value === "string") : [],
+    risk_details: Array.isArray(item.risk_details)
+      ? item.risk_details.filter((value) => value && typeof value === "object")
+      : describeSafetyRisks(item.risk_types || []),
     trace_tools: Array.isArray(item.trace_tools) ? item.trace_tools.filter((value) => typeof value === "string") : [],
     createdAt: item.createdAt || new Date().toISOString()
   };
@@ -830,6 +858,7 @@ function scanImportSafety(files) {
   return {
     status: riskTypes.length ? "needs_review" : "passed",
     risk_types: riskTypes,
+    risk_details: describeSafetyRisks(riskTypes),
     prompt_injection_files: uniquePromptInjectionFiles,
     sensitive_files: uniqueSensitiveFiles,
     prompt_injection_file_count: uniquePromptInjectionFiles.length,
@@ -1409,6 +1438,7 @@ function validateTraceToolUse(trace = []) {
   return {
     status: riskTypes.length ? "needs_review" : "passed",
     risk_types: riskTypes,
+    risk_details: describeSafetyRisks(riskTypes),
     checks: [{
       name: "Agent tool policy",
       risk_type: "tool_policy",
@@ -1451,6 +1481,7 @@ function scanInputSafety(question) {
   return {
     status: riskTypes.length ? "needs_review" : "passed",
     risk_types: riskTypes,
+    risk_details: describeSafetyRisks(riskTypes),
     checks
   };
 }
@@ -1486,6 +1517,7 @@ function scanRetrievedSafety(chunks) {
   return {
     status: riskTypes.length ? "needs_review" : "passed",
     risk_types: riskTypes,
+    risk_details: describeSafetyRisks(riskTypes),
     checks,
     flagged_files: [...new Set([...injectionFiles, ...sensitiveFiles])].slice(0, 8),
     flagged_sensitive_files: [...new Set(sensitiveFiles)].slice(0, 8),
@@ -1533,6 +1565,7 @@ function scanOutputSafety(project, payload) {
   return {
     status: riskTypes.length ? "needs_review" : "passed",
     risk_types: riskTypes,
+    risk_details: describeSafetyRisks(riskTypes),
     checks,
     citation
   };
@@ -1549,6 +1582,7 @@ function mergeSafetyReports(...reports) {
   return {
     status: riskTypes.length ? "needs_review" : "passed",
     risk_types: riskTypes,
+    risk_details: describeSafetyRisks(riskTypes),
     checks
   };
 }
@@ -1999,6 +2033,7 @@ function createHarnessRunSnapshot(answerRecord) {
     fallback_reason: harness.fallback_reason,
     safety_status: answerRecord.payload?.safety?.status || "not_applicable",
     risk_types: answerRecord.payload?.safety?.risk_types || [],
+    risk_details: answerRecord.payload?.safety?.risk_details || describeSafetyRisks(answerRecord.payload?.safety?.risk_types || []),
     trace_tools: (answerRecord.payload?.trace || []).map((step) => step.tool).filter(Boolean),
     createdAt: answerRecord.createdAt
   });

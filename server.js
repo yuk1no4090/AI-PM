@@ -2242,6 +2242,13 @@ function computeMetrics(store, projectId) {
     acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {});
+  const traceToolCounts = answers.reduce((acc, item) => {
+    (item.payload?.trace || []).forEach((step) => {
+      if (!step?.tool) return;
+      acc[step.tool] = (acc[step.tool] || 0) + 1;
+    });
+    return acc;
+  }, {});
   const fallbackReasonCounts = answers.reduce((acc, item) => {
     if (!item.payload?.harness?.fallback_used) return acc;
     const reason = item.payload.harness.model_adapter?.error_code
@@ -2321,6 +2328,7 @@ function computeMetrics(store, projectId) {
     budget_status_counts: rankCounts(budgetStatusCounts),
     schema_status_counts: rankCounts(schemaStatusCounts),
     llm_usage_counts: rankCounts(llmUsageCounts),
+    trace_tool_counts: rankCounts(traceToolCounts),
     fallback_reasons: rankCounts(fallbackReasonCounts),
     recent_harness_runs: recentHarnessRuns,
     recent_safety_events: recentSafetyEvents,

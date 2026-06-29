@@ -1019,6 +1019,9 @@ async function main() {
     assert(evaluation.metrics.schema_status_counts.some((item) => item.type === "schema_valid"), "evaluation did not count schema-valid runs");
     assert(Array.isArray(evaluation.metrics.llm_usage_counts), "evaluation did not report LLM usage counts");
     assert(evaluation.metrics.llm_usage_counts.some((item) => item.type === "offline_retrieval"), "evaluation did not count offline LLM usage");
+    assert(Array.isArray(evaluation.metrics.trace_tool_counts), "evaluation did not report trace tool counts");
+    assert(evaluation.metrics.trace_tool_counts.some((item) => item.type === "retriever_agent.retrieve_repository_chunks"), "evaluation did not count retriever trace tool");
+    assert(evaluation.metrics.trace_tool_counts.some((item) => item.type === "safety_guardrail_agent.validate_output"), "evaluation did not count safety trace tool");
     assert(Array.isArray(evaluation.metrics.fallback_reasons), "evaluation did not report fallback reasons");
     assert(Array.isArray(evaluation.metrics.recent_harness_runs), "evaluation did not report recent harness runs");
     assert(evaluation.metrics.recent_harness_runs.some((item) => /^agent_[0-9a-f-]{36}$/.test(item.run_id || "")), "recent harness runs did not include an agent run id");

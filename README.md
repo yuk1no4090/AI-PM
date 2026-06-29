@@ -82,7 +82,7 @@ Without an API key, the app falls back to a deterministic retrieval-based answer
 - Agent Workflow tab backed by a LangGraph StateGraph with classifier, retriever, context expansion, impact analysis, QA planning, memory, safety guardrails, and structured synthesis.
 - User preference memory suggestions that require explicit confirmation before being saved. Confirmed preferences are global to the local app instance; suggestions carry project ownership so confirmation/ignore actions can verify the active project. Ignored suggestions suppress the same key/value suggestion from being repeated. The Copilot inspector includes a lightweight preference memory manager for viewing, removing one preference value, or clearing all preferences.
 - Application-level AI safety checks for prompt injection, secret requests, read-only tool boundaries, retrieved sensitive content, citation validation, uncited impact areas, sensitive output, and overconfidence.
-- Evaluation dashboard with total questions, agent runs, helpful rate, citation coverage, uncertainty rate, negative feedback, high-risk questions, guardrail hits, memory confirmations, memory status distribution, recent memory events, fallback runs, average response time, safety risk and status distribution, recent safety events, harness runtime, model mode, tool policy, budget status, schema status, and LLM usage distribution, fallback reason distribution, recent harness runs, and recent feedback.
+- Evaluation dashboard with total questions, agent runs, helpful rate, citation coverage, uncertainty rate, negative feedback, high-risk questions, guardrail hits, memory confirmations, memory status distribution, recent memory events, fallback runs, average response time, safety risk and status distribution, recent safety events, harness runtime, model mode, tool policy, budget status, schema status, LLM usage, and trace tool distribution, fallback reason distribution, recent harness runs, and recent feedback.
 
 ## Agent Runtime Architecture
 
@@ -150,7 +150,7 @@ Common API errors include:
 - `harness`: LangGraph runtime, run id, model mode, model adapter, executed steps, duration, fallback status, fallback reason, schema status, budgets, budget status, read-only tool registry, model error codes, and errors.
 - `safety`: aggregate safety status, risk types, and guardrail checks.
 
-Evaluation metrics are scoped to the requested `projectId`, so safety status, memory status, recent memory events, harness runtime, model mode, tool policy, budget status, schema status, LLM usage, fallback, response-time counts, recent safety events, and recent harness runs reflect the currently selected imported repository. Metrics ignore unknown feedback types so old or manually edited store data cannot pollute quality rates and failure-reason counts.
+Evaluation metrics are scoped to the requested `projectId`, so safety status, memory status, recent memory events, harness runtime, model mode, tool policy, budget status, schema status, LLM usage, trace tool usage, fallback, response-time counts, recent safety events, and recent harness runs reflect the currently selected imported repository. Metrics ignore unknown feedback types so old or manually edited store data cannot pollute quality rates and failure-reason counts.
 
 See [docs/AGENT_RUNTIME_ARCHITECTURE.md](docs/AGENT_RUNTIME_ARCHITECTURE.md) for the LangGraph, memory, harness, and safety implementation boundary.
 

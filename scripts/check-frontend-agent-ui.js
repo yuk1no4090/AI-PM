@@ -40,6 +40,9 @@ const requiredChatRuntimeSnippets = [
   "renderOptionalRuntimeStatus(payload)",
   "function renderOnboardingMessage",
   "renderMemorySuggestions(payload.memory_suggestions)",
+  "summary.safetyReview",
+  "prompt_injection_file_count",
+  "sensitive_file_count",
   "state.llmStatus?.llm?.request_timeout_ms",
   "timeoutTitle"
 ];

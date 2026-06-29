@@ -388,6 +388,9 @@ async function runLlmSchemaFallbackSmoke() {
     });
     const sensitiveProjectId = sensitiveRepoImport.project?.id;
     assert(sensitiveProjectId, "LLM redaction fixture import did not return a project id");
+    assert(sensitiveRepoImport.project.summary.safetyReview.status === "needs_review", "sensitive import should need safety review");
+    assert(sensitiveRepoImport.project.summary.safetyReview.risk_types.includes("import_sensitive_content"), "sensitive import risk type not reported");
+    assert(sensitiveRepoImport.project.summary.safetyReview.sensitive_files.includes("src/config/secrets.ts"), "sensitive import did not report affected file path");
     await requestTo(baseUrl, "/api/agent-impact", {
       method: "POST",
       body: JSON.stringify({
@@ -1128,6 +1131,9 @@ async function main() {
     });
     const maliciousProjectId = maliciousImport.project?.id;
     assert(maliciousProjectId, "malicious fixture import did not return a project id");
+    assert(maliciousImport.project.summary.safetyReview.status === "needs_review", "malicious import should need safety review");
+    assert(maliciousImport.project.summary.safetyReview.risk_types.includes("import_prompt_injection"), "malicious import prompt-injection risk type not reported");
+    assert(maliciousImport.project.summary.safetyReview.prompt_injection_files.includes("src/routes/order.ts"), "malicious import did not report affected file path");
     const retrievedInjection = await request("/api/agent-impact", {
       method: "POST",
       body: JSON.stringify({

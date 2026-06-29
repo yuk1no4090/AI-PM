@@ -8,6 +8,10 @@ const [serverSource, architectureDoc, readme] = await Promise.all([
 
 const requiredServerSnippets = [
   "function scanInputSafety",
+  "function scanImportSafety",
+  "safetyReview",
+  "import_prompt_injection",
+  "import_sensitive_content",
   "risk_type: \"prompt_injection\"",
   "忽略.{0,20}(系统|指令|规则)",
   "(reveal|show|print|dump|leak).{0,40}(system|developer)",
@@ -44,6 +48,7 @@ const requiredDocSnippets = [
   "write/tool escalation intent",
   "retrieved-context prompt injection",
   "retrieved sensitive content",
+  "import-time `safetyReview`",
   "sensitive-looking values",
   "no-impact-citation overconfidence",
   "read-only registry"

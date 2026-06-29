@@ -790,6 +790,29 @@ function recommendFiles(files) {
     .map((item) => item.path);
 }
 
+function scanImportSafety(files) {
+  const promptInjectionFiles = files
+    .filter((file) => /(ignore previous|disregard (all )?(previous|system)|reveal the (system|developer) prompt|show the system prompt|泄露|忽略.{0,20}(系统|指令|规则))/i.test(file.content))
+    .map((file) => file.path);
+  const sensitiveFiles = files
+    .filter((file) => SENSITIVE_VALUE_PATTERN.test(file.content))
+    .map((file) => file.path);
+  const uniquePromptInjectionFiles = [...new Set(promptInjectionFiles)].sort();
+  const uniqueSensitiveFiles = [...new Set(sensitiveFiles)].sort();
+  const riskTypes = [
+    uniquePromptInjectionFiles.length ? "import_prompt_injection" : null,
+    uniqueSensitiveFiles.length ? "import_sensitive_content" : null
+  ].filter(Boolean);
+  return {
+    status: riskTypes.length ? "needs_review" : "passed",
+    risk_types: riskTypes,
+    prompt_injection_files: uniquePromptInjectionFiles,
+    sensitive_files: uniqueSensitiveFiles,
+    prompt_injection_file_count: uniquePromptInjectionFiles.length,
+    sensitive_file_count: uniqueSensitiveFiles.length
+  };
+}
+
 function createProject({ name, source, files }) {
   const limitedFiles = files
     .filter((file) => shouldIncludeFile(file.path))
@@ -804,6 +827,7 @@ function createProject({ name, source, files }) {
   const techStack = inferTechStack(limitedFiles);
   const businessFeatures = detectBusinessFeatures(limitedFiles);
   const recommendedFiles = recommendFiles(limitedFiles);
+  const safetyReview = scanImportSafety(limitedFiles);
   const project = {
     id: crypto.randomUUID(),
     name,
@@ -824,6 +848,7 @@ function createProject({ name, source, files }) {
       businessFeatures,
       readmeSummary: summarizeReadme(limitedFiles),
       recommendedFiles,
+      safetyReview,
       overview: buildOverview(name, techStack, businessFeatures, recommendedFiles)
     }
   };

@@ -725,6 +725,7 @@ function overviewPage() {
   if (!state.project) return emptyProject("Import a repository to generate a project overview.");
   const c = t();
   const { summary } = state.project;
+  const safetyReview = summary.safetyReview || {};
   const quickActions = c.overview.quickActions;
   return html`
     <main class="page-shell">
@@ -789,6 +790,15 @@ function overviewPage() {
             <div><strong>${state.project.chunkCount}</strong><span>${c.overview.retrievable}</span></div>
             <div><strong>${state.project.files.filter((file) => file.type === "md").length}</strong><span>${c.overview.docs}</span></div>
             <div><strong>${state.project.files.filter((file) => ["ts", "tsx", "js", "py", "java"].includes(file.type)).length}</strong><span>${c.overview.sourceFiles}</span></div>
+          </div>
+        </section>
+
+        <section class="panel evidence-panel">
+          <h2>${escapeHtml(c.overview.safety || "Import Safety")}</h2>
+          <div class="evidence-stats">
+            <div><strong>${escapeHtml(safetyReview.status === "needs_review" ? (c.overview.safetyReview || "needs review") : (c.overview.safetyPassed || "passed"))}</strong><span>${escapeHtml((safetyReview.risk_types || []).join(", ") || "no risks")}</span></div>
+            <div><strong>${safetyReview.prompt_injection_file_count || 0}</strong><span>${escapeHtml(c.overview.promptRisks || "prompt-risk files")}</span></div>
+            <div><strong>${safetyReview.sensitive_file_count || 0}</strong><span>${escapeHtml(c.overview.sensitiveFiles || "sensitive files")}</span></div>
           </div>
         </section>
       </div>

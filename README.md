@@ -78,6 +78,7 @@ Without an API key, the app falls back to a deterministic retrieval-based answer
 
 - Repository import from public GitHub URL, ZIP upload, or built-in sample repository.
 - Project overview with inferred stack, directory tree, core modules, README summary, and recommended first reads.
+- Import-time safety review with prompt-risk and sensitive-content file counts in the project overview.
 - Repository Q&A with related files, uncertainty, suggested next questions, feedback buttons, lightweight harness metadata, safety status, guardrail details, and pending memory suggestions.
 - Impact analysis with impacted modules, risk level, testing suggestions, and open questions.
 - Agent Workflow tab backed by a LangGraph StateGraph with classifier, retriever, context expansion, impact analysis, QA planning, memory, safety guardrails, and structured synthesis.

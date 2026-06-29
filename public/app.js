@@ -1368,14 +1368,23 @@ function recentHarnessRuns(items = []) {
     <div class="feedback-log">
       ${items.map((item) => {
         const risks = (item.risk_types || []).slice(0, 2).join(", ");
+        const budget = item.budget_status?.context_budget_exceeded
+          ? "context budget"
+          : item.budget_status?.timeout_exceeded
+            ? "timeout"
+            : item.budget_status?.step_budget_exceeded
+              ? "step budget"
+              : "within budget";
         const status = [
           item.safety_status || "unknown",
+          item.schema_valid === false ? "schema invalid" : "schema valid",
+          budget,
           item.fallback_used ? "fallback" : "no fallback",
           `${item.duration_ms || 0}ms`
         ].join(" | ");
         return `<div>
           <code>${escapeHtml(String(item.run_id || "").slice(0, 18))}</code>
-          <span>${escapeHtml(item.kind || "run")} | ${escapeHtml(item.runtime || "runtime")}</span>
+          <span>${escapeHtml(item.kind || "run")} | ${escapeHtml(item.runtime || "runtime")} | ${escapeHtml(item.model_provider || "")}</span>
           <span>${escapeHtml(status)}${risks ? ` | ${escapeHtml(risks)}` : ""}</span>
           <button class="text-button" data-harness-run="${escapeHtml(item.run_id || "")}">Audit</button>
         </div>`;
@@ -1390,12 +1399,17 @@ function harnessAuditPanel(audit) {
   const harness = audit.answer?.harness || {};
   const safety = audit.answer?.safety || {};
   const riskDetails = audit.run?.risk_details || safety.risk_details || [];
+  const budget = audit.run?.budget_status || harness.budget_status || {};
+  const adapter = audit.run?.model_adapter || harness.model_adapter || {};
   return html`
     <section class="panel span-3">
       <h2>Harness Run Audit</h2>
       <div class="runtime-status">
         <div><strong>run</strong><span>${escapeHtml(audit.run?.run_id || "")}</span></div>
         <div><strong>runtime</strong><span>${escapeHtml(audit.run?.runtime || harness.runtime || "")}</span></div>
+        <div><strong>model</strong><span>${escapeHtml([adapter.provider, adapter.model].filter(Boolean).join(" / ") || audit.run?.model_provider || "")}</span></div>
+        <div><strong>schema</strong><span>${escapeHtml((audit.run?.schema_valid ?? harness.schema_valid) === false ? "invalid" : "valid")}</span></div>
+        <div><strong>budget</strong><span>${escapeHtml(budget.context_budget_exceeded ? "context exceeded" : budget.timeout_exceeded ? "timeout exceeded" : budget.step_budget_exceeded ? "step exceeded" : "within budget")}</span></div>
         <div><strong>safety</strong><span>${escapeHtml(audit.run?.safety_status || safety.status || "unknown")}</span></div>
         <div><strong>fallback</strong><span>${escapeHtml(audit.run?.fallback_used ? "true" : "false")}</span></div>
       </div>

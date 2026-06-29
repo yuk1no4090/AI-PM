@@ -1089,6 +1089,9 @@ async function main() {
     assert(unsafe.payload.guardrails.some((item) => item.name === "Input safety" && item.status === "needs_review"), "unsafe input guardrail not surfaced");
     const unsafeRunAudit = await request(`/api/harness-run?projectId=${encodeURIComponent(projectId)}&runId=${encodeURIComponent(unsafe.payload.harness.run_id)}`);
     assert(unsafeRunAudit.run.risk_details.some((item) => item.type === "prompt_injection" && item.description), "harness run audit did not preserve risk details");
+    assert(unsafeRunAudit.run.schema_valid === true, "harness run audit did not preserve schema status");
+    assert(unsafeRunAudit.run.budget_status?.steps_executed > 0, "harness run audit did not preserve budget status");
+    assert(unsafeRunAudit.run.model_adapter?.provider, "harness run audit did not preserve model adapter summary");
     const systemPromptLeak = await request("/api/agent-impact", {
       method: "POST",
       body: JSON.stringify({
@@ -1284,6 +1287,8 @@ async function main() {
     assert(evaluation.metrics.recent_harness_runs.some((item) => /^agent_[0-9a-f-]{36}$/.test(item.run_id || "")), "recent harness runs did not include an agent run id");
     assert(evaluation.metrics.recent_harness_runs.some((item) => /^chat_[0-9a-f-]{36}$/.test(item.run_id || "")), "recent harness runs did not include a chat run id");
     assert(evaluation.metrics.recent_harness_runs.some((item) => Array.isArray(item.trace_tools) && item.trace_tools.length > 0), "recent harness run snapshots did not include trace tools");
+    assert(evaluation.metrics.recent_harness_runs.some((item) => item.schema_valid === true && item.budget_status?.steps_executed > 0), "recent harness run snapshots did not include schema and budget status");
+    assert(evaluation.metrics.recent_harness_runs.some((item) => item.model_adapter?.provider && Object.hasOwn(item.model_adapter, "llm_attempted")), "recent harness run snapshots did not include model adapter audit fields");
     assert(evaluation.metrics.safety_risk_counts.some((item) => item.type === "prompt_injection"), "evaluation did not count prompt injection risk type");
     assert(evaluation.metrics.recent_safety_events.some((item) => {
       return item.answer_id && (item.risk_types || []).includes("prompt_injection");

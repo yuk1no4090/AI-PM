@@ -113,7 +113,7 @@ Safety payloads include `risk_details`, a normalized explanation list derived fr
 
 `/api/evaluation` also reports `output_redaction_runs`, `output_redaction_matches`, and `recent_redaction_events` so redaction activity is visible at dashboard level without exposing raw secrets.
 
-It also derives `recent_memory_events` from project-owned memory audit events, with memory suggestions as a backward-compatible fallback for older stores. Each item includes action, suggestion id when available, preference key/value, display label, status, and creation time.
+It also derives `memory_event_counts` and `recent_memory_events` from project-owned memory audit events, with memory suggestions as a backward-compatible fallback for older stores. Each event item includes action, suggestion id when available, preference key/value, display label, status, and creation time.
 
 The evaluation payload also exposes `safety_status_counts`, `import_safety_status`, `import_safety_risk_counts`, and `memory_status_counts`, so the dashboard can distinguish passed versus review-needed safety outcomes, import-time safety findings, and pending versus confirmed or ignored memory suggestions.
 

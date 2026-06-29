@@ -88,6 +88,8 @@ const requiredDashboardSnippets = [
   "recentMemoryEvents(metrics.recent_memory_events)",
   "c.dashboard.recentMemory",
   "memory_status_counts",
+  "memory_event_counts",
+  "Memory Events",
   "safety_status_counts",
   "import_safety_status",
   "import_safety_risk_counts",

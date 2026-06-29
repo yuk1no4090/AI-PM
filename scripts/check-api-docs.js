@@ -80,6 +80,7 @@ const missingReadmeErrorDocs = requiredErrorDocSnippets.filter((snippet) => !rea
 const requiredEvaluationMetricSnippets = [
   "average_response_time_ms",
   "memory_status_counts",
+  "memory_event_counts",
   "recent_memory_events",
   "safety_risk_counts",
   "safety_status_counts",

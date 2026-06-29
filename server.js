@@ -2701,6 +2701,11 @@ function computeMetrics(store, projectId) {
   const projectMemoryEvents = (store.memoryEvents || []).filter((item) => {
     return !projectId || item.projectId === projectId || item.projectId == null;
   });
+  const memoryEventCounts = (projectMemoryEvents.length ? projectMemoryEvents : suggestions).reduce((acc, item) => {
+    const type = item.action || item.status || "memory_event";
+    acc[type] = (acc[type] || 0) + 1;
+    return acc;
+  }, {});
   const recentHarnessRuns = (projectHarnessRuns.length
     ? projectHarnessRuns
     : answers
@@ -2760,6 +2765,7 @@ function computeMetrics(store, projectId) {
     safety_risk_counts: rankCounts(safetyRiskCounts),
     safety_status_counts: rankCounts(safetyStatusCounts),
     memory_status_counts: rankCounts(memoryStatusCounts),
+    memory_event_counts: rankCounts(memoryEventCounts),
     harness_runtime_counts: rankCounts(harnessRuntimeCounts),
     model_mode_counts: rankCounts(modelModeCounts),
     tool_policy_counts: rankCounts(toolPolicyCounts),

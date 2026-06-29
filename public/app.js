@@ -1503,6 +1503,7 @@ function dashboardPage() {
     safety_status_counts: [],
     citation_status_counts: [],
     memory_status_counts: [],
+    memory_event_counts: [],
     harness_runtime_counts: [],
     model_mode_counts: [],
     tool_policy_counts: [],
@@ -1584,6 +1585,10 @@ function dashboardPage() {
         <section class="panel">
           <h2>${c.dashboard.memoryStatus}</h2>
           ${rankedBars(metrics.memory_status_counts)}
+        </section>
+        <section class="panel">
+          <h2>Memory Events</h2>
+          ${rankedBars(metrics.memory_event_counts)}
         </section>
         <section class="panel">
           <h2>${c.dashboard.harnessRuntime}</h2>

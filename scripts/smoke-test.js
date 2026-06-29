@@ -1265,6 +1265,9 @@ async function main() {
     assert(evaluation.metrics.average_response_time_ms >= 0, "evaluation did not report average response time");
     assert(Array.isArray(evaluation.metrics.memory_status_counts), "evaluation did not report memory status counts");
     assert(evaluation.metrics.memory_status_counts.some((item) => item.type === "confirmed"), "evaluation did not count confirmed memory status");
+    assert(Array.isArray(evaluation.metrics.memory_event_counts), "evaluation did not report memory event counts");
+    assert(evaluation.metrics.memory_event_counts.some((item) => item.type === "confirmed"), "evaluation did not count confirmed memory events");
+    assert(evaluation.metrics.memory_event_counts.some((item) => item.type === "forgot_preference"), "evaluation did not count forgot memory events");
     assert(Array.isArray(evaluation.metrics.recent_memory_events), "evaluation did not report recent memory events");
     assert(evaluation.metrics.recent_memory_events.some((item) => item.key && item.status), "recent memory events did not include preference details");
     assert(evaluation.metrics.recent_memory_events.some((item) => item.action === "forgot_preference" && item.status === "forgotten"), "recent memory events did not include forget audit event");

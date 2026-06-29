@@ -62,7 +62,7 @@ Verify the connection:
 curl http://localhost:3000/api/health
 ```
 
-The response shows whether the LLM is configured and which provider/model is active.
+The response shows whether the LLM is configured, which provider/model is active, and the effective LLM request timeout.
 
 Without an API key, the app falls back to a deterministic retrieval-based answer generator. The demo still works, but answers will be template-based rather than AI-generated. The UI shows "AI-enhanced mode" or "Offline retrieval mode" so it is always clear which mode is active.
 
@@ -107,7 +107,7 @@ The `modelAdapter` boundary uses an OpenAI-compatible chat completions call when
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/api/health` | Server, package version, git commit, Node runtime, environment, uptime, and LLM configuration status. |
+| `GET` | `/api/health` | Server, package version, git commit, Node runtime, environment, uptime, LLM configuration status, and effective request timeout. |
 | `GET` | `/api/projects` | List imported projects without chunk bodies. |
 | `POST` | `/api/import` | Import sample, public GitHub repository, or ZIP upload. |
 | `POST` | `/api/chat` | Repository Q&A or standard impact analysis with lightweight harness and safety metadata. |

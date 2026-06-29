@@ -311,6 +311,8 @@ async function runLlmSchemaFallbackSmoke() {
 
   try {
     await waitForServer(child, baseUrl);
+    const health = await requestTo(baseUrl, "/api/health");
+    assert(health.llm.request_timeout_ms === 200, "health should report configured fake LLM timeout");
     const imported = await requestTo(baseUrl, "/api/import", {
       method: "POST",
       body: JSON.stringify({ sample: true })
@@ -622,6 +624,7 @@ async function main() {
     assert(typeof health.node === "string" && health.node.startsWith("v"), "health endpoint did not report Node runtime");
     assert(health.environment === (process.env.NODE_ENV || "development"), "health endpoint did not report runtime environment");
     assert(Number.isInteger(health.uptime_seconds), "health endpoint did not report integer uptime");
+    assert(health.llm.request_timeout_ms === 30000, "health endpoint did not report effective LLM timeout");
 
     const missingProject = await requestError("/api/evaluation");
     assert(missingProject.status === 400, "missing project should return 400");

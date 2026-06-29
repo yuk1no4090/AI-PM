@@ -2808,7 +2808,8 @@ async function handleApiUnlocked(req, res, pathname) {
           configured: hasKey,
           provider,
           model,
-          endpoint: endpoint || "(not configured - set OPENAI_API_KEY)"
+          endpoint: endpoint || "(not configured - set OPENAI_API_KEY)",
+          request_timeout_ms: LLM_REQUEST_TIMEOUT_MS
         },
         version: RUNTIME_METADATA.version,
         commit: RUNTIME_METADATA.commit,

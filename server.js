@@ -2729,6 +2729,27 @@ function computeMetrics(store, projectId) {
         .map((guardrail) => guardrail.name),
       createdAt: item.createdAt
     }));
+  const recentToolPolicyEvents = answers
+    .filter((item) => item.payload?.harness?.tool_registry)
+    .slice(-8)
+    .reverse()
+    .map((item) => {
+      const toolGuardrail = (item.payload?.guardrails || []).find((guardrail) => guardrail.name === "Agent tool policy");
+      const toolRiskTypes = (item.payload?.safety?.risk_types || []).filter((riskType) => {
+        return riskType === "unknown_agent_tool" || riskType === "tool_policy_violation";
+      });
+      return {
+        answer_id: item.id,
+        run_id: item.payload?.harness?.run_id || null,
+        kind: item.kind,
+        policy_mode: item.payload?.harness?.tool_registry?.policy?.mode || "unknown",
+        status: toolGuardrail?.status || (toolRiskTypes.length ? "needs_review" : "passed"),
+        risk_types: toolRiskTypes,
+        trace_tools: (item.payload?.trace || []).map((step) => step.tool).filter(Boolean),
+        detail: toolGuardrail?.detail || "",
+        createdAt: item.createdAt
+      };
+    });
   const recentMemoryEvents = (projectMemoryEvents.length
     ? projectMemoryEvents
     : suggestions)
@@ -2783,6 +2804,7 @@ function computeMetrics(store, projectId) {
     import_sensitive_files: importSafety.sensitive_files || [],
     recent_harness_runs: recentHarnessRuns,
     recent_safety_events: recentSafetyEvents,
+    recent_tool_policy_events: recentToolPolicyEvents,
     recent_redaction_events: outputRedactionEvents.slice(-8).reverse(),
     recent_memory_events: recentMemoryEvents,
     top_failure_reasons: Object.entries(counts)

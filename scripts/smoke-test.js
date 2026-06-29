@@ -1284,6 +1284,8 @@ async function main() {
     assert(evaluation.metrics.model_mode_counts.some((item) => item.type === "offline retrieval"), "evaluation did not count offline model mode");
     assert(Array.isArray(evaluation.metrics.tool_policy_counts), "evaluation did not report tool policy counts");
     assert(evaluation.metrics.tool_policy_counts.some((item) => item.type === "read-only"), "evaluation did not count read-only tool policy");
+    assert(Array.isArray(evaluation.metrics.recent_tool_policy_events), "evaluation did not report recent tool policy events");
+    assert(evaluation.metrics.recent_tool_policy_events.some((item) => item.policy_mode === "read-only" && item.status === "passed" && item.trace_tools.length > 0), "recent tool policy events did not include read-only passed trace details");
     assert(Array.isArray(evaluation.metrics.budget_status_counts), "evaluation did not report budget status counts");
     assert(evaluation.metrics.budget_status_counts.some((item) => item.type === "within_budget"), "evaluation did not count within-budget runs");
     assert(Array.isArray(evaluation.metrics.schema_status_counts), "evaluation did not report schema status counts");

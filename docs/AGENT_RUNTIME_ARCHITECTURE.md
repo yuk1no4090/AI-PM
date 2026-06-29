@@ -117,7 +117,7 @@ It also derives `memory_event_counts` and `recent_memory_events` from project-ow
 
 The evaluation payload also exposes `safety_status_counts`, `import_safety_status`, `import_safety_risk_counts`, and `memory_status_counts`, so the dashboard can distinguish passed versus review-needed safety outcomes, import-time safety findings, and pending versus confirmed or ignored memory suggestions.
 
-For harness observability, the evaluation payload exposes `harness_runtime_counts`, `model_mode_counts`, `tool_policy_counts`, `budget_status_counts`, `schema_status_counts`, `llm_usage_counts`, and `trace_tool_counts`, derived from saved harness metadata and trace steps.
+For harness observability, the evaluation payload exposes `harness_runtime_counts`, `model_mode_counts`, `tool_policy_counts`, `recent_tool_policy_events`, `budget_status_counts`, `schema_status_counts`, `llm_usage_counts`, and `trace_tool_counts`, derived from saved harness metadata and trace steps.
 
 Citation observability uses the same validation boundary as the output guardrail. `citation_status_counts` distinguishes valid citations, missing files, uncited impact areas, and answers with no repository citation, using related files, impact-area files, onboarding plan files, and trace citations.
 

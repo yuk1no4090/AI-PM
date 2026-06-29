@@ -91,6 +91,7 @@ const requiredEvaluationMetricSnippets = [
   "harness_runtime_counts",
   "model_mode_counts",
   "tool_policy_counts",
+  "recent_tool_policy_events",
   "budget_status_counts",
   "schema_status_counts",
   "llm_usage_counts",

@@ -1465,6 +1465,22 @@ function recentRedactionEvents(items = []) {
   `;
 }
 
+function recentToolPolicyEvents(items = []) {
+  if (!items.length) return `<p class="empty-inline">No tool policy events yet.</p>`;
+  return html`
+    <div class="feedback-log">
+      ${items.map((item) => {
+        const tools = (item.trace_tools || []).slice(0, 2).join(", ");
+        return `<div>
+          <code>${escapeHtml(String(item.run_id || item.answer_id || "").slice(0, 18))}</code>
+          <span>${escapeHtml(item.kind || "answer")} | ${escapeHtml(item.policy_mode || "unknown")} | ${escapeHtml(item.status || "passed")}</span>
+          <span>${escapeHtml(tools || "no trace tools")}</span>
+        </div>`;
+      }).join("")}
+    </div>
+  `;
+}
+
 function recentMemoryEvents(items = []) {
   if (!items.length) return `<p class="empty-inline">No memory events yet.</p>`;
   return html`
@@ -1520,6 +1536,7 @@ function dashboardPage() {
     fallback_reasons: [],
     recent_harness_runs: [],
     recent_safety_events: [],
+    recent_tool_policy_events: [],
     recent_redaction_events: [],
     recent_memory_events: [],
     top_failure_reasons: [],
@@ -1617,6 +1634,10 @@ function dashboardPage() {
         <section class="panel span-2">
           <h2>${c.dashboard.traceTools}</h2>
           ${rankedBars(metrics.trace_tool_counts)}
+        </section>
+        <section class="panel span-2">
+          <h2>Recent Tool Policy</h2>
+          ${recentToolPolicyEvents(metrics.recent_tool_policy_events)}
         </section>
         <section class="panel span-2">
           <h2>${c.dashboard.recentSafety}</h2>

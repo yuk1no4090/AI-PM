@@ -121,6 +121,8 @@ The first version uses read-only agent tools only. The tool registry forbids:
 - shell execution
 - external network tools
 
+The public harness exposes the same policy shape as runtime metadata: `mode: "read-only"`, `allow_external_network: false`, `allow_repository_writes: false`, and `allow_shell_execution: false`.
+
 The trace is checked against the registry before the final response is returned. Unknown or disallowed tools mark safety as `needs_review`.
 
 ## AI Safety Boundary

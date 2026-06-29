@@ -97,6 +97,8 @@ Feedback records preserve `harness_run_id` when the referenced answer payload in
 
 `/api/evaluation` derives `recent_harness_runs` from saved answer payloads. Each item includes the run id, answer id, answer kind, runtime, model mode, duration, fallback status, safety status, risk types, and creation time.
 
+`recent_feedback` enriches each feedback record with answer kind, harness run id, and safety status so dashboard feedback can be traced back to the runtime that produced the answer.
+
 The same evaluation payload derives `recent_safety_events` from saved answers with `needs_review` safety status or recorded risk types. Each item includes the answer id, optional run id, answer kind, safety status, risk types, matching guardrails, and creation time.
 
 It also derives `recent_memory_events` from project-owned memory suggestions. Each item includes the suggestion id, preference key/value, display label, status, confidence, and creation time.

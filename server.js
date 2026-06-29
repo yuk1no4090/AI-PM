@@ -2320,6 +2320,7 @@ function computeMetrics(store, projectId) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
     .map(([type, count]) => ({ type, count }));
+  const answersById = new Map(answers.map((item) => [item.id, item]));
   const recentHarnessRuns = answers
     .filter((item) => item.payload?.harness?.run_id)
     .slice(-8)
@@ -2398,7 +2399,15 @@ function computeMetrics(store, projectId) {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 4)
       .map(([type, count]) => ({ type, count })),
-    recent_feedback: feedback.slice(-8).reverse()
+    recent_feedback: feedback.slice(-8).reverse().map((item) => {
+      const answer = answersById.get(item.answerId);
+      return {
+        ...item,
+        answer_kind: answer?.kind || null,
+        harness_run_id: item.harness_run_id || answer?.payload?.harness?.run_id || null,
+        safety_status: answer?.payload?.safety?.status || "not_applicable"
+      };
+    })
   };
 }
 

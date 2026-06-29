@@ -103,7 +103,9 @@ const requiredDashboardSnippets = [
   "item.guardrails",
   "c.dashboard.recentRuns",
   "item.fallback_used",
-  "item.safety_status"
+  "item.safety_status",
+  "item.harness_run_id",
+  "item.answer_kind"
 ];
 
 const missingDashboardSnippets = requiredDashboardSnippets.filter((snippet) => {

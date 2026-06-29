@@ -1517,7 +1517,11 @@ function dashboardPage() {
         <section class="panel span-2">
           <h2>${c.dashboard.recent}</h2>
           <div class="feedback-log">
-            ${renderList(metrics.recent_feedback, (item) => `<div><code>${escapeHtml(item.type)}</code><span>${new Date(item.createdAt).toLocaleString()}</span></div>`)}
+            ${renderList(metrics.recent_feedback, (item) => {
+              const run = item.harness_run_id ? `run ${String(item.harness_run_id).slice(0, 18)}` : item.answer_kind || "answer";
+              const status = [item.answer_kind, item.safety_status].filter(Boolean).join(" / ");
+              return `<div><code>${escapeHtml(item.type)}</code><span>${escapeHtml(run)}</span><span>${escapeHtml(status || new Date(item.createdAt).toLocaleString())}</span></div>`;
+            })}
           </div>
         </section>
         <section class="panel span-3 improvement-panel">

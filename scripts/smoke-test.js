@@ -1100,6 +1100,12 @@ async function main() {
     });
     assert(concurrentFeedback.length >= concurrentFeedbackTypes.length, "concurrent feedback writes were lost");
     assert(concurrentFeedback.every((item) => item.harness_run_id === agent.payload.harness.run_id), "feedback records did not preserve harness run id");
+    const evaluationAfterFeedback = await request(`/api/evaluation?projectId=${encodeURIComponent(projectId)}`);
+    assert(evaluationAfterFeedback.metrics.recent_feedback.some((item) => {
+      return item.harness_run_id === agent.payload.harness.run_id
+        && item.answer_kind === "agent_impact"
+        && item.safety_status === "passed";
+    }), "recent feedback did not preserve harness run correlation");
 
     const forgotten = await request("/api/memory/forget", {
       method: "POST",

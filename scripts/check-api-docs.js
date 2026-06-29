@@ -61,6 +61,7 @@ const requiredErrorDocSnippets = [
   "harness runtime, model mode, tool policy, budget status, schema status, LLM usage, and trace tool distribution",
   "fallback reason distribution",
   "recent harness runs",
+  "recent feedback run correlation",
   "git commit",
   "Node runtime",
   "uptime"

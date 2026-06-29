@@ -128,7 +128,7 @@ The trace is checked against the registry before the final response is returned.
 Safety checks run at four levels:
 
 - Import: request bodies, GitHub fetch duration, ZIP byte size, ZIP entry counts, safe relative repository paths, imported file counts, per-file text size, total imported text size, and ZIP structure are bounded before repository content enters analysis.
-- Input: prompt injection, secret requests, and write/tool escalation intent.
+- Input: prompt injection, system/developer prompt leakage requests, secret requests, and write/tool escalation intent.
 - Retrieval: instruction-like text and sensitive-looking values inside repository files are treated as untrusted evidence and flagged for review.
 - Output: citations must exist in the imported repository, every impact area must cite at least one file, sensitive-looking values are flagged, and no-impact-citation overconfidence is flagged.
 - Agent: all trace tools must match the read-only registry.

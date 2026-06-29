@@ -1324,7 +1324,7 @@ function validateTraceToolUse(trace = []) {
 
 function scanInputSafety(question) {
   const lower = question.toLowerCase();
-  const promptInjectionPattern = /(ignore|bypass|override).{0,40}(system|developer|instruction|rules|previous)|jailbreak|忽略.{0,20}(系统|指令|规则)|绕过.{0,20}(系统|指令|规则)/i;
+  const promptInjectionPattern = /(ignore|bypass|override).{0,40}(system|developer|instruction|rules|previous)|(reveal|show|print|dump|leak).{0,40}(system|developer).{0,20}(prompt|message|instruction)|jailbreak|忽略.{0,20}(系统|指令|规则)|绕过.{0,20}(系统|指令|规则)|泄露.{0,20}(系统|开发者).{0,10}(提示|提示词|指令)/i;
   const secretRequestPattern = /(api[_ -]?key|secret|token|password|credential|泄露|密钥|令牌|密码|凭证)/i;
   const toolPermissionPattern = /(delete|write|commit|push|execute|run shell|rm -rf|删除|写入|提交|推送|执行命令)/i;
   const checks = [
@@ -1356,7 +1356,7 @@ function scanInputSafety(question) {
 }
 
 function scanRetrievedSafety(chunks) {
-  const promptInjectionPattern = /(ignore|bypass|override).{0,40}(system|developer|instruction|rules|previous)|jailbreak|忽略.{0,20}(系统|指令|规则)|绕过.{0,20}(系统|指令|规则)/i;
+  const promptInjectionPattern = /(ignore|bypass|override).{0,40}(system|developer|instruction|rules|previous)|(reveal|show|print|dump|leak).{0,40}(system|developer).{0,20}(prompt|message|instruction)|jailbreak|忽略.{0,20}(系统|指令|规则)|绕过.{0,20}(系统|指令|规则)|泄露.{0,20}(系统|开发者).{0,10}(提示|提示词|指令)/i;
   const injectionFiles = chunks.filter((chunk) => {
     return promptInjectionPattern.test(chunk.content);
   }).map((chunk) => chunk.file_path);

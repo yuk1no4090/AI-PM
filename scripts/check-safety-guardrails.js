@@ -10,6 +10,8 @@ const requiredServerSnippets = [
   "function scanInputSafety",
   "risk_type: \"prompt_injection\"",
   "忽略.{0,20}(系统|指令|规则)",
+  "(reveal|show|print|dump|leak).{0,40}(system|developer)",
+  "泄露.{0,20}(系统|开发者).{0,10}(提示|提示词|指令)",
   "risk_type: \"secret_request\"",
   "泄露|密钥|令牌",
   "risk_type: \"tool_permission\"",

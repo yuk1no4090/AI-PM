@@ -1087,7 +1087,7 @@ function renderRuntimeStatus(payload) {
     harness.fallback_reason,
     modelAdapter.error_code,
     modelAdapter.http_status ? `HTTP ${modelAdapter.http_status}` : null,
-    budget.step_budget_exceeded || budget.timeout_exceeded ? c.chat.budgetExceeded : c.chat.budgetOk
+    budget.step_budget_exceeded || budget.timeout_exceeded || budget.context_budget_exceeded ? c.chat.budgetExceeded : c.chat.budgetOk
   ].filter(Boolean).join(" | ");
   const safetyStatus = [
     safety.status || c.chat.unknown,

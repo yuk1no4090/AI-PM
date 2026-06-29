@@ -65,7 +65,8 @@ const requiredErrorDocSnippets = [
   "git commit",
   "Node runtime",
   "uptime",
-  "effective request timeout"
+  "effective request timeout",
+  "context token budget"
 ];
 const missingReadmeErrorDocs = requiredErrorDocSnippets.filter((snippet) => !readme.includes(snippet));
 

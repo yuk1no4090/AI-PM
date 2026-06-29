@@ -22,7 +22,7 @@ npm test
 
 Static check scripts use the `scripts/check-*.js` naming convention. `scripts/static-checks.js` syntax-checks all `scripts/*.js` files and discovers/runs `check-*.js` automatically.
 
-The smoke test starts the server on temporary ports with isolated temporary data stores, then verifies custom `STORE_PATH` creation, corrupt store backup, invalid timeout config fallback, sample import, LangGraph agent execution, memory confirmation/forget, Chinese memory suggestions, safety guardrails, Chinese prompt-injection and secret-request guardrails, tool-permission guardrails, retrieved-context prompt-injection handling, retrieved sensitive content handling, Q&A, evaluation metrics, API-key mode fallback when a fake OpenAI-compatible model returns schema-invalid JSON, missing-citation guardrails when the fake model cites a nonexistent file, and sensitive-output guardrails when the fake model emits secret-like text. Smoke requests use explicit timeouts and wait for spawned servers to exit during cleanup. Use `npm run test:smoke` to run only the server-backed smoke test.
+The smoke test starts the server on temporary ports with isolated temporary data stores, then verifies custom `STORE_PATH` creation, corrupt store backup, invalid timeout/context-budget config fallback, sample import, LangGraph agent execution, memory confirmation/forget, Chinese memory suggestions, safety guardrails, Chinese prompt-injection and secret-request guardrails, tool-permission guardrails, retrieved-context prompt-injection handling, retrieved sensitive content handling, Q&A, evaluation metrics, API-key mode fallback when a fake OpenAI-compatible model returns schema-invalid JSON, context token budget fallback before external model calls, missing-citation guardrails when the fake model cites a nonexistent file, and sensitive-output guardrails when the fake model emits secret-like text. Smoke requests use explicit timeouts and wait for spawned servers to exit during cleanup. Use `npm run test:smoke` to run only the server-backed smoke test.
 
 GitHub Actions runs `npm ci` and `npm test` on pushes to `main` and pull requests.
 
@@ -39,6 +39,7 @@ The project targets Node.js 20. Local Node version managers can read `.nvmrc`; C
 | `OPENAI_API_KEY` | unset | Enables AI-enhanced model calls when set. |
 | `OPENAI_BASE_URL` | `https://api.openai.com` | OpenAI-compatible API base URL. |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Chat completion model name. |
+| `LLM_CONTEXT_TOKEN_BUDGET` | `8000` | Estimated prompt context token budget before using deterministic fallback. |
 
 ## LLM Setup (Optional but recommended)
 
@@ -62,7 +63,7 @@ Verify the connection:
 curl http://localhost:3000/api/health
 ```
 
-The response shows whether the LLM is configured, which provider/model is active, and the effective LLM request timeout.
+The response shows whether the LLM is configured, which provider/model is active, the effective LLM request timeout, and the effective context token budget.
 
 Without an API key, the app falls back to a deterministic retrieval-based answer generator. The demo still works, but answers will be template-based rather than AI-generated. The UI shows "AI-enhanced mode" or "Offline retrieval mode" so it is always clear which mode is active.
 
@@ -101,7 +102,7 @@ input safety
   -> structured synthesizer
 ```
 
-The `modelAdapter` boundary uses an OpenAI-compatible chat completions call when configured and otherwise reports deterministic offline retrieval. LLM transport failures, timeouts, HTTP errors, invalid JSON, and schema errors are reported through `harness.model_adapter` before the deterministic fallback is used. The `agentHarness` boundary records runtime metadata for each agent run: run id, model mode, provider, adapter, executed steps, duration, fallback status, fallback reason, schema status, budgets, budget status, read-only tool registry, and errors. The tool policy is exposed as `mode: "read-only"`, `allow_external_network: false`, `allow_repository_writes: false`, and `allow_shell_execution: false`. `/api/chat` uses a lighter `Direct Chat Harness` with the same model adapter, schema validation, trace shape, deterministic fallback metadata, `memory_used`, pending `memory_suggestions`, input/retrieval/output safety reports, and guardrail details. `/api/onboarding` uses an `Onboarding Harness` for deterministic plan generation with the same trace, safety, guardrail, memory suggestion, and evaluation visibility conventions. Feedback records preserve `harness_run_id` when the answer came from an observable harness run. Repository files are treated as untrusted evidence; retrieved text is never promoted into system instructions. Sensitive-looking values, including API keys, tokens, passwords, credentials, and secrets, are redacted before repository context is sent to a model.
+The `modelAdapter` boundary uses an OpenAI-compatible chat completions call when configured and otherwise reports deterministic offline retrieval. LLM transport failures, timeouts, context token budget overruns, HTTP errors, invalid JSON, and schema errors are reported through `harness.model_adapter` before the deterministic fallback is used. The `agentHarness` boundary records runtime metadata for each agent run: run id, model mode, provider, adapter, executed steps, duration, fallback status, fallback reason, schema status, budgets, budget status, read-only tool registry, and errors. The tool policy is exposed as `mode: "read-only"`, `allow_external_network: false`, `allow_repository_writes: false`, and `allow_shell_execution: false`. `/api/chat` uses a lighter `Direct Chat Harness` with the same model adapter, schema validation, trace shape, deterministic fallback metadata, `memory_used`, pending `memory_suggestions`, input/retrieval/output safety reports, and guardrail details. `/api/onboarding` uses an `Onboarding Harness` for deterministic plan generation with the same trace, safety, guardrail, memory suggestion, and evaluation visibility conventions. Feedback records preserve `harness_run_id` when the answer came from an observable harness run. Repository files are treated as untrusted evidence; retrieved text is never promoted into system instructions. Sensitive-looking values, including API keys, tokens, passwords, credentials, and secrets, are redacted before repository context is sent to a model.
 
 ## API Surface
 

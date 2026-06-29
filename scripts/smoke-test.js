@@ -313,6 +313,7 @@ async function runLlmSchemaFallbackSmoke() {
     await waitForServer(child, baseUrl);
     const health = await requestTo(baseUrl, "/api/health");
     assert(health.llm.request_timeout_ms === 200, "health should report configured fake LLM timeout");
+    assert(health.llm.context_token_budget === 8000, "health should report default context token budget");
     const imported = await requestTo(baseUrl, "/api/import", {
       method: "POST",
       body: JSON.stringify({ sample: true })
@@ -446,6 +447,76 @@ async function runLlmSchemaFallbackSmoke() {
   }
 }
 
+async function runContextBudgetSmoke() {
+  const fakeLlm = await startFakeLlmServer();
+  const dataDir = await mkdtemp(path.join(tmpdir(), "ai-pm-context-budget-smoke-"));
+  const port = await getFreePort();
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const child = spawn(process.execPath, ["server.js"], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      PORT: port,
+      HOST: "127.0.0.1",
+      DATA_DIR: dataDir,
+      OPENAI_API_KEY: "fake-smoke-key",
+      OPENAI_BASE_URL: fakeLlm.baseUrl,
+      OPENAI_MODEL: "fake-context-budget-model",
+      LLM_CONTEXT_TOKEN_BUDGET: "1"
+    },
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+
+  let stdout = "";
+  let stderr = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk.toString();
+  });
+  child.stderr.on("data", (chunk) => {
+    stderr += chunk.toString();
+  });
+
+  try {
+    await waitForServer(child, baseUrl);
+    const health = await requestTo(baseUrl, "/api/health");
+    assert(health.llm.context_token_budget === 1, "health should report configured context token budget");
+    const imported = await requestTo(baseUrl, "/api/import", {
+      method: "POST",
+      body: JSON.stringify({ sample: true })
+    });
+    const projectId = imported.project?.id;
+    const result = await requestTo(baseUrl, "/api/agent-impact", {
+      method: "POST",
+      body: JSON.stringify({
+        projectId,
+        question: "Analyze order status impact with context budget validation."
+      })
+    });
+    assert(fakeLlm.getRequestCount() === 0, "context budget fallback should not call fake LLM");
+    assert(result.payload.harness.model_adapter.llm_attempted === false, "context budget fallback should not attempt LLM");
+    assert(result.payload.harness.model_adapter.error_code === "LLM_CONTEXT_BUDGET_EXCEEDED", "context budget should report LLM_CONTEXT_BUDGET_EXCEEDED");
+    assert(result.payload.harness.model_adapter.context_budget_exceeded === true, "model adapter should flag context budget exceeded");
+    assert(result.payload.harness.budget_status.context_budget_exceeded === true, "budget status should flag context budget exceeded");
+    assert(result.payload.harness.budget_status.context_tokens_estimated > 1, "budget status should include estimated context tokens");
+    assert(result.payload.harness.fallback_used === true, "context budget should trigger deterministic fallback");
+    const evaluation = await requestTo(baseUrl, `/api/evaluation?projectId=${encodeURIComponent(projectId)}`);
+    assert(evaluation.metrics.budget_status_counts.some((item) => item.type === "context_budget_exceeded"), "evaluation should count context budget overruns");
+    return {
+      fakeLlmRequests: fakeLlm.getRequestCount(),
+      errorCode: result.payload.harness.model_adapter.error_code,
+      estimatedTokens: result.payload.harness.budget_status.context_tokens_estimated
+    };
+  } catch (error) {
+    console.error(stdout);
+    console.error(stderr);
+    throw error;
+  } finally {
+    await stopChild(child);
+    await closeServer(fakeLlm.server);
+    await rm(dataDir, { recursive: true, force: true });
+  }
+}
+
 async function runStorePathSmoke() {
   const rootDir = await mkdtemp(path.join(tmpdir(), "ai-pm-store-path-"));
   const storePath = path.join(rootDir, "nested", "custom-store.json");
@@ -547,7 +618,8 @@ async function runInvalidTimeoutConfigSmoke() {
       HOST: "127.0.0.1",
       DATA_DIR: dataDir,
       OPENAI_API_KEY: "",
-      LLM_REQUEST_TIMEOUT_MS: "not-a-number"
+      LLM_REQUEST_TIMEOUT_MS: "not-a-number",
+      LLM_CONTEXT_TOKEN_BUDGET: "not-a-number"
     },
     stdio: ["ignore", "pipe", "pipe"]
   });
@@ -578,7 +650,10 @@ async function runInvalidTimeoutConfigSmoke() {
     assert(chat.payload.harness.budgets.timeout_ms === 30000, "invalid LLM_REQUEST_TIMEOUT_MS should fall back to default timeout");
     assert(chat.payload.harness.budget_status.timeout_ms === 30000, "budget status should use fallback timeout for invalid config");
     assert(Number.isFinite(chat.payload.harness.budget_status.timeout_ms), "budget timeout should be finite");
-    return { invalidTimeoutFallback: true };
+    assert(chat.payload.harness.budgets.max_context_tokens === 8000, "invalid LLM_CONTEXT_TOKEN_BUDGET should fall back to default budget");
+    assert(chat.payload.harness.budget_status.max_context_tokens === 8000, "budget status should use fallback context budget for invalid config");
+    assert(Number.isFinite(chat.payload.harness.budget_status.max_context_tokens), "context token budget should be finite");
+    return { invalidTimeoutFallback: true, invalidContextBudgetFallback: true };
   } catch (error) {
     console.error(stdout);
     console.error(stderr);
@@ -625,6 +700,7 @@ async function main() {
     assert(health.environment === (process.env.NODE_ENV || "development"), "health endpoint did not report runtime environment");
     assert(Number.isInteger(health.uptime_seconds), "health endpoint did not report integer uptime");
     assert(health.llm.request_timeout_ms === 30000, "health endpoint did not report effective LLM timeout");
+    assert(health.llm.context_token_budget === 8000, "health endpoint did not report effective context token budget");
 
     const missingProject = await requestError("/api/evaluation");
     assert(missingProject.status === 400, "missing project should return 400");
@@ -732,9 +808,12 @@ async function main() {
     assert(agent.payload.harness.fallback_reason.includes("OPENAI_API_KEY"), "offline fallback reason should mention missing API key");
     assert(agent.payload?.harness?.schema_valid === true, "harness schema status should be valid");
     assert(agent.payload?.harness?.budgets?.max_steps === 9, "harness should report max step budget");
+    assert(agent.payload.harness.budgets.max_context_tokens === 8000, "harness should report context token budget");
     assert(agent.payload?.harness?.budget_status?.steps_executed === agent.payload.harness.steps_executed, "budget status should mirror executed steps");
     assert(agent.payload.harness.budget_status.step_budget_exceeded === false, "normal agent run should not exceed step budget");
     assert(agent.payload.harness.budget_status.timeout_exceeded === false, "normal agent run should not exceed timeout budget");
+    assert(Number.isFinite(agent.payload.harness.budget_status.context_tokens_estimated), "normal agent run should report estimated context tokens");
+    assert(agent.payload.harness.budget_status.context_budget_exceeded === false, "normal agent run should not exceed context token budget");
     assert(Array.isArray(agent.payload?.harness?.errors), "harness errors should be an array");
     assert(agent.payload.harness.errors.length === 0, "safe agent run should not record harness errors");
     assert(agent.payload?.harness?.tool_registry?.policy?.mode === "read-only", "harness did not report read-only tool policy");
@@ -1091,6 +1170,9 @@ async function main() {
     assert(qa.payload.harness.fallback_used === true, "offline qa should report deterministic fallback");
     assert(qa.payload.harness.fallback_reason.includes("OPENAI_API_KEY"), "offline qa fallback reason should mention missing API key");
     assert(qa.payload.harness.schema_valid === true, "offline qa schema status should be valid");
+    assert(qa.payload.harness.budgets.max_context_tokens === 8000, "qa harness should report context token budget");
+    assert(Number.isFinite(qa.payload.harness.budget_status.context_tokens_estimated), "qa harness should report estimated context tokens");
+    assert(qa.payload.harness.budget_status.context_budget_exceeded === false, "safe qa should not exceed context token budget");
     assert(Array.isArray(qa.payload.trace) && qa.payload.trace.length === 4, "qa endpoint should expose 4 chat harness trace steps");
     assert(qa.payload?.safety?.status === "passed", "safe qa request should pass safety checks");
     assert(Array.isArray(qa.payload.guardrails), "qa endpoint should expose guardrail details");
@@ -1198,6 +1280,7 @@ async function main() {
     const corruptStoreBackupSmoke = await runCorruptStoreBackupSmoke();
     const invalidTimeoutConfigSmoke = await runInvalidTimeoutConfigSmoke();
     const llmSchemaFallback = await runLlmSchemaFallbackSmoke();
+    const contextBudgetSmoke = await runContextBudgetSmoke();
 
     console.log(JSON.stringify({
       ok: true,
@@ -1232,7 +1315,8 @@ async function main() {
       storePathSmoke,
       corruptStoreBackupSmoke,
       invalidTimeoutConfigSmoke,
-      llmSchemaFallback
+      llmSchemaFallback,
+      contextBudgetSmoke
     }, null, 2));
   } catch (error) {
     console.error(stdout);

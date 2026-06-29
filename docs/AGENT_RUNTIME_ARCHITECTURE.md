@@ -65,8 +65,9 @@ It supports OpenAI-compatible chat completions through:
 - `OPENAI_BASE_URL`
 - `OPENAI_MODEL`
 - `LLM_REQUEST_TIMEOUT_MS`
+- `LLM_CONTEXT_TOKEN_BUDGET`
 
-If no API key is configured, the model adapter reports deterministic offline retrieval. If a model response times out, fails transport, returns a non-2xx HTTP response, returns invalid JSON, or fails schema validation, the workflow uses deterministic fallback and records the failure under `harness.model_adapter.error_code`, `error`, `http_status`, `duration_ms`, and `schema_errors` when applicable. Repository chunks are scanned in raw form for safety, but sensitive-looking values such as API keys, tokens, passwords, credentials, and secrets are redacted before the retrieved context is sent to an external model.
+If no API key is configured, the model adapter reports deterministic offline retrieval. If estimated prompt tokens exceed `LLM_CONTEXT_TOKEN_BUDGET`, the adapter does not call the external model and uses deterministic fallback with `LLM_CONTEXT_BUDGET_EXCEEDED`. If a model response times out, fails transport, returns a non-2xx HTTP response, returns invalid JSON, or fails schema validation, the workflow uses deterministic fallback and records the failure under `harness.model_adapter.error_code`, `error`, `http_status`, `duration_ms`, `prompt_tokens_estimated`, `max_context_tokens`, `context_budget_exceeded`, and `schema_errors` when applicable. Repository chunks are scanned in raw form for safety, but sensitive-looking values such as API keys, tokens, passwords, credentials, and secrets are redacted before the retrieved context is sent to an external model.
 
 ## agentHarness
 
@@ -90,6 +91,7 @@ The harness reports:
 - schema status
 - budgets
 - budget status
+- estimated context token usage
 - read-only tool registry
 - errors
 
@@ -111,7 +113,7 @@ Citation observability uses the same validation boundary as the output guardrail
 
 `withWorkflowTimeout()` enforces the graph timeout. Timeout failures use the same deterministic fallback path as other workflow failures.
 
-`LLM_REQUEST_TIMEOUT_MS` controls individual model call timeouts for both the LangGraph workflow and the direct chat harness. Invalid or non-positive timeout values fall back to the default agent timeout so harness budget metadata stays finite.
+`LLM_REQUEST_TIMEOUT_MS` controls individual model call timeouts for both the LangGraph workflow and the direct chat harness. `LLM_CONTEXT_TOKEN_BUDGET` controls estimated prompt context size before an external model call is attempted. Invalid or non-positive timeout and context budget values fall back to finite defaults so harness budget metadata stays finite.
 
 ## Tool Policy
 

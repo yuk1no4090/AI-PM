@@ -99,7 +99,8 @@ const GITHUB_IMPORT_TIMEOUT_MS = 15_000;
 
 const AGENT_BUDGETS = {
   max_steps: 9,
-  timeout_ms: 30_000
+  timeout_ms: 30_000,
+  max_context_tokens: 8_000
 };
 
 function parsePositiveIntegerEnv(name, fallback) {
@@ -108,6 +109,7 @@ function parsePositiveIntegerEnv(name, fallback) {
 }
 
 const LLM_REQUEST_TIMEOUT_MS = parsePositiveIntegerEnv("LLM_REQUEST_TIMEOUT_MS", AGENT_BUDGETS.timeout_ms);
+const LLM_CONTEXT_TOKEN_BUDGET = parsePositiveIntegerEnv("LLM_CONTEXT_TOKEN_BUDGET", AGENT_BUDGETS.max_context_tokens);
 
 const AGENT_TOOL_REGISTRY = [
   { name: "safety.scan_input", capability: "input_guardrail", access: "read-only", external_network: false },
@@ -952,8 +954,22 @@ function redactSensitiveText(text) {
     .replace(/\b([A-Za-z0-9_]*(?:api[_-]?key|apikey|token|password|credential|secret)[A-Za-z0-9_]*)\b\s*[:=]\s*([A-Za-z0-9_./+-]*\d[A-Za-z0-9_./+-]{7,})/gi, "$1 = [REDACTED_SECRET]");
 }
 
+function estimateTokenCount(value) {
+  const text = typeof value === "string" ? value : JSON.stringify(value || "");
+  return Math.ceil(text.length / 4);
+}
+
 async function maybeCallOpenAI({ question, chunks, kind, project }) {
   const started = Date.now();
+  const context = chunks.map((chunk, index) => {
+    return `[${index + 1}] ${chunk.file_path}:${chunk.start_line}-${chunk.end_line}\n${redactSensitiveText(chunk.content)}`;
+  }).join("\n\n");
+  const promptTokensEstimated = estimateTokenCount({
+    project: project.name,
+    question,
+    kind,
+    context
+  });
   if (!process.env.OPENAI_API_KEY) {
     console.log("[LLM] No OPENAI_API_KEY set - using deterministic retrieval-based answers.");
     return {
@@ -962,7 +978,10 @@ async function maybeCallOpenAI({ question, chunks, kind, project }) {
       error: null,
       error_code: null,
       http_status: null,
-      duration_ms: Date.now() - started
+      duration_ms: Date.now() - started,
+      prompt_tokens_estimated: promptTokensEstimated,
+      max_context_tokens: LLM_CONTEXT_TOKEN_BUDGET,
+      context_budget_exceeded: promptTokensEstimated > LLM_CONTEXT_TOKEN_BUDGET
     };
   }
 
@@ -971,9 +990,20 @@ async function maybeCallOpenAI({ question, chunks, kind, project }) {
   const provider = resolveLlmProvider();
   console.log(`[LLM] Calling ${provider} (${model}) at ${endpoint}`);
 
-  const context = chunks.map((chunk, index) => {
-    return `[${index + 1}] ${chunk.file_path}:${chunk.start_line}-${chunk.end_line}\n${redactSensitiveText(chunk.content)}`;
-  }).join("\n\n");
+  if (promptTokensEstimated > LLM_CONTEXT_TOKEN_BUDGET) {
+    console.warn(`[LLM] Estimated prompt tokens ${promptTokensEstimated} exceed budget ${LLM_CONTEXT_TOKEN_BUDGET}; using deterministic fallback.`);
+    return {
+      payload: null,
+      attempted: false,
+      error: `Estimated prompt tokens ${promptTokensEstimated} exceed context budget ${LLM_CONTEXT_TOKEN_BUDGET}`,
+      error_code: "LLM_CONTEXT_BUDGET_EXCEEDED",
+      http_status: null,
+      duration_ms: Date.now() - started,
+      prompt_tokens_estimated: promptTokensEstimated,
+      max_context_tokens: LLM_CONTEXT_TOKEN_BUDGET,
+      context_budget_exceeded: true
+    };
+  }
 
   const schemaInstruction = kind === "impact"
     ? "Return JSON with summary, impact_areas, testing_suggestions, open_questions."
@@ -1033,7 +1063,10 @@ ${context}`
         error: `${provider} returned HTTP ${response.status}`,
         error_code: "LLM_HTTP_ERROR",
         http_status: response.status,
-        duration_ms: Date.now() - started
+        duration_ms: Date.now() - started,
+        prompt_tokens_estimated: promptTokensEstimated,
+        max_context_tokens: LLM_CONTEXT_TOKEN_BUDGET,
+        context_budget_exceeded: false
       };
     }
 
@@ -1060,7 +1093,10 @@ ${context}`
         error: null,
         error_code: null,
         http_status: response.status,
-        duration_ms: Date.now() - started
+        duration_ms: Date.now() - started,
+        prompt_tokens_estimated: promptTokensEstimated,
+        max_context_tokens: LLM_CONTEXT_TOKEN_BUDGET,
+        context_budget_exceeded: false
       };
     } catch (error) {
       console.error(`[LLM] ${provider} returned invalid JSON content: ${error.message}`);
@@ -1070,7 +1106,10 @@ ${context}`
         error: `${provider} returned invalid JSON content`,
         error_code: "LLM_INVALID_JSON",
         http_status: response.status,
-        duration_ms: Date.now() - started
+        duration_ms: Date.now() - started,
+        prompt_tokens_estimated: promptTokensEstimated,
+        max_context_tokens: LLM_CONTEXT_TOKEN_BUDGET,
+        context_budget_exceeded: false
       };
     }
   } catch (error) {
@@ -1083,7 +1122,10 @@ ${context}`
         error: `${provider} request timed out after ${LLM_REQUEST_TIMEOUT_MS}ms`,
         error_code: "LLM_TIMEOUT",
         http_status: null,
-        duration_ms: Date.now() - started
+        duration_ms: Date.now() - started,
+        prompt_tokens_estimated: promptTokensEstimated,
+        max_context_tokens: LLM_CONTEXT_TOKEN_BUDGET,
+        context_budget_exceeded: false
       };
     } else {
       console.error(`[LLM] ${provider} request failed: ${error.message}`);
@@ -1093,7 +1135,10 @@ ${context}`
         error: `${provider} request failed: ${error.message}`,
         error_code: "LLM_TRANSPORT_ERROR",
         http_status: null,
-        duration_ms: Date.now() - started
+        duration_ms: Date.now() - started,
+        prompt_tokens_estimated: promptTokensEstimated,
+        max_context_tokens: LLM_CONTEXT_TOKEN_BUDGET,
+        context_budget_exceeded: false
       };
     }
   }
@@ -1677,7 +1722,10 @@ async function runModelAdapter({ question, chunks, kind, project, validatePayloa
         : null,
       error_code: modelCall.error_code || (hasApiKey && !validation.valid ? "LLM_SCHEMA_INVALID" : null),
       http_status: modelCall.http_status,
-      duration_ms: modelCall.duration_ms
+      duration_ms: modelCall.duration_ms,
+      prompt_tokens_estimated: modelCall.prompt_tokens_estimated || 0,
+      max_context_tokens: modelCall.max_context_tokens || LLM_CONTEXT_TOKEN_BUDGET,
+      context_budget_exceeded: !!modelCall.context_budget_exceeded
     }
   };
 }
@@ -1700,7 +1748,10 @@ function buildAgentHarnessReport({ runId, started, trace, harnessEvents, errors 
     step_budget_exceeded: trace.length > AGENT_BUDGETS.max_steps,
     timeout_ms: AGENT_BUDGETS.timeout_ms,
     duration_ms: durationMs,
-    timeout_exceeded: durationMs > AGENT_BUDGETS.timeout_ms || harnessEvents.some((event) => event.type === "workflow_timeout")
+    timeout_exceeded: durationMs > AGENT_BUDGETS.timeout_ms || harnessEvents.some((event) => event.type === "workflow_timeout"),
+    context_tokens_estimated: modelEvent.prompt_tokens_estimated || 0,
+    max_context_tokens: modelEvent.max_context_tokens || LLM_CONTEXT_TOKEN_BUDGET,
+    context_budget_exceeded: !!modelEvent.context_budget_exceeded
   };
   const fallbackUsed = !!modelEvent.fallback_used || errors.length > 0;
   const fallbackReason = errors[0]
@@ -1722,14 +1773,20 @@ function buildAgentHarnessReport({ runId, started, trace, harnessEvents, errors 
       error: modelEvent.error || null,
       error_code: modelEvent.error_code || null,
       http_status: modelEvent.http_status || null,
-      duration_ms: modelEvent.duration_ms || 0
+      duration_ms: modelEvent.duration_ms || 0,
+      prompt_tokens_estimated: modelEvent.prompt_tokens_estimated || 0,
+      max_context_tokens: modelEvent.max_context_tokens || LLM_CONTEXT_TOKEN_BUDGET,
+      context_budget_exceeded: !!modelEvent.context_budget_exceeded
     },
     steps_executed: trace.length,
     duration_ms: durationMs,
     fallback_used: fallbackUsed,
     fallback_reason: fallbackUsed ? fallbackReason : null,
     schema_valid: modelEvent.schema_valid !== false && errors.length === 0,
-    budgets: AGENT_BUDGETS,
+    budgets: {
+      ...AGENT_BUDGETS,
+      max_context_tokens: LLM_CONTEXT_TOKEN_BUDGET
+    },
     budget_status,
     tool_registry: summarizeToolRegistry(),
     errors: harnessErrors
@@ -1762,7 +1819,10 @@ function buildChatHarnessReport({ runId, started, trace, modelEvent, errors }) {
       error: modelEvent?.error || null,
       error_code: modelEvent?.error_code || null,
       http_status: modelEvent?.http_status || null,
-      duration_ms: modelEvent?.duration_ms || 0
+      duration_ms: modelEvent?.duration_ms || 0,
+      prompt_tokens_estimated: modelEvent?.prompt_tokens_estimated || 0,
+      max_context_tokens: modelEvent?.max_context_tokens || LLM_CONTEXT_TOKEN_BUDGET,
+      context_budget_exceeded: !!modelEvent?.context_budget_exceeded
     },
     steps_executed: trace.length,
     duration_ms: durationMs,
@@ -1771,7 +1831,8 @@ function buildChatHarnessReport({ runId, started, trace, modelEvent, errors }) {
     schema_valid: modelEvent?.schema_valid !== false && errors.length === 0,
     budgets: {
       max_steps: 4,
-      timeout_ms: LLM_REQUEST_TIMEOUT_MS
+      timeout_ms: LLM_REQUEST_TIMEOUT_MS,
+      max_context_tokens: LLM_CONTEXT_TOKEN_BUDGET
     },
     budget_status: {
       steps_executed: trace.length,
@@ -1779,7 +1840,10 @@ function buildChatHarnessReport({ runId, started, trace, modelEvent, errors }) {
       step_budget_exceeded: trace.length > 4,
       timeout_ms: LLM_REQUEST_TIMEOUT_MS,
       duration_ms: durationMs,
-      timeout_exceeded: durationMs > LLM_REQUEST_TIMEOUT_MS
+      timeout_exceeded: durationMs > LLM_REQUEST_TIMEOUT_MS,
+      context_tokens_estimated: modelEvent?.prompt_tokens_estimated || 0,
+      max_context_tokens: modelEvent?.max_context_tokens || LLM_CONTEXT_TOKEN_BUDGET,
+      context_budget_exceeded: !!modelEvent?.context_budget_exceeded
     },
     tool_registry: summarizeToolRegistry(),
     errors: harnessErrors
@@ -1812,7 +1876,8 @@ function buildOnboardingHarnessReport({ runId, started, trace, errors = [] }) {
     schema_valid: errors.length === 0,
     budgets: {
       max_steps: 4,
-      timeout_ms: LLM_REQUEST_TIMEOUT_MS
+      timeout_ms: LLM_REQUEST_TIMEOUT_MS,
+      max_context_tokens: LLM_CONTEXT_TOKEN_BUDGET
     },
     budget_status: {
       steps_executed: trace.length,
@@ -1820,7 +1885,10 @@ function buildOnboardingHarnessReport({ runId, started, trace, errors = [] }) {
       step_budget_exceeded: trace.length > 4,
       timeout_ms: LLM_REQUEST_TIMEOUT_MS,
       duration_ms: durationMs,
-      timeout_exceeded: durationMs > LLM_REQUEST_TIMEOUT_MS
+      timeout_exceeded: durationMs > LLM_REQUEST_TIMEOUT_MS,
+      context_tokens_estimated: 0,
+      max_context_tokens: LLM_CONTEXT_TOKEN_BUDGET,
+      context_budget_exceeded: false
     },
     tool_registry: summarizeToolRegistry(),
     errors
@@ -2271,6 +2339,8 @@ function computeMetrics(store, projectId) {
     if (!budget) return acc;
     const status = budget.timeout_exceeded
       ? "timeout_exceeded"
+      : budget.context_budget_exceeded
+        ? "context_budget_exceeded"
       : budget.step_budget_exceeded
         ? "step_budget_exceeded"
         : "within_budget";
@@ -2809,7 +2879,8 @@ async function handleApiUnlocked(req, res, pathname) {
           provider,
           model,
           endpoint: endpoint || "(not configured - set OPENAI_API_KEY)",
-          request_timeout_ms: LLM_REQUEST_TIMEOUT_MS
+          request_timeout_ms: LLM_REQUEST_TIMEOUT_MS,
+          context_token_budget: LLM_CONTEXT_TOKEN_BUDGET
         },
         version: RUNTIME_METADATA.version,
         commit: RUNTIME_METADATA.commit,

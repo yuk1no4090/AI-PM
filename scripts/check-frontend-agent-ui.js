@@ -22,6 +22,7 @@ const requiredRuntimeSnippets = [
   "harness.budget_status",
   "budget.step_budget_exceeded",
   "budget.timeout_exceeded",
+  "budget.context_budget_exceeded",
   "c.chat.fallbackUsed",
   "c.chat.noFallback",
   "c.chat.budgetExceeded",

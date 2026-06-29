@@ -218,6 +218,7 @@ const copy = {
       memoryStatus: "Memory Status",
       harnessRuntime: "Harness Runtime",
       modelMode: "Model Mode",
+      toolPolicy: "Tool Policy",
       fallbackReasons: "Fallback Reasons",
       recentSafety: "Recent Safety Events",
       recentMemory: "Recent Memory Events",
@@ -429,6 +430,7 @@ const copy = {
       memoryStatus: "记忆状态",
       harnessRuntime: "Harness 运行时",
       modelMode: "模型模式",
+      toolPolicy: "工具策略",
       fallbackReasons: "Fallback 原因",
       recentSafety: "最近安全事件",
       recentMemory: "最近记忆事件",
@@ -1383,6 +1385,7 @@ function dashboardPage() {
     memory_status_counts: [],
     harness_runtime_counts: [],
     model_mode_counts: [],
+    tool_policy_counts: [],
     fallback_reasons: [],
     recent_harness_runs: [],
     recent_safety_events: [],
@@ -1442,6 +1445,10 @@ function dashboardPage() {
         <section class="panel">
           <h2>${c.dashboard.modelMode}</h2>
           ${rankedBars(metrics.model_mode_counts)}
+        </section>
+        <section class="panel">
+          <h2>${c.dashboard.toolPolicy}</h2>
+          ${rankedBars(metrics.tool_policy_counts)}
         </section>
         <section class="panel span-2">
           <h2>${c.dashboard.recentSafety}</h2>

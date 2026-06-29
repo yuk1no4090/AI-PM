@@ -215,6 +215,7 @@ const copy = {
       failures: "Top Failure Reasons",
       safetyRisks: "Safety Risk Types",
       safetyStatus: "Safety Status",
+      citationStatus: "Citation Status",
       memoryStatus: "Memory Status",
       harnessRuntime: "Harness Runtime",
       modelMode: "Model Mode",
@@ -431,6 +432,7 @@ const copy = {
       failures: "主要失败原因",
       safetyRisks: "安全风险类型",
       safetyStatus: "安全状态",
+      citationStatus: "引用状态",
       memoryStatus: "记忆状态",
       harnessRuntime: "Harness 运行时",
       modelMode: "模型模式",
@@ -1390,6 +1392,7 @@ function dashboardPage() {
     average_response_time_ms: 0,
     safety_risk_counts: [],
     safety_status_counts: [],
+    citation_status_counts: [],
     memory_status_counts: [],
     harness_runtime_counts: [],
     model_mode_counts: [],
@@ -1418,6 +1421,7 @@ function dashboardPage() {
     [c.dashboard.fallbackRuns, metrics.fallback_runs || 0],
     [c.dashboard.avgResponse, `${metrics.average_response_time_ms || 0}ms`]
   ];
+  const citationStatusLabel = c.dashboard.citationStatus || "引用状态";
   return html`
     <main class="page-shell">
       <div class="section-head row-head">
@@ -1445,6 +1449,10 @@ function dashboardPage() {
         <section class="panel">
           <h2>${c.dashboard.safetyStatus}</h2>
           ${rankedBars(metrics.safety_status_counts)}
+        </section>
+        <section class="panel">
+          <h2>${citationStatusLabel}</h2>
+          ${rankedBars(metrics.citation_status_counts)}
         </section>
         <section class="panel">
           <h2>${c.dashboard.memoryStatus}</h2>

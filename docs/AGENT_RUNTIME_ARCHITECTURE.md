@@ -101,6 +101,8 @@ The evaluation payload also exposes `safety_status_counts` and `memory_status_co
 
 For harness observability, the evaluation payload exposes `harness_runtime_counts`, `model_mode_counts`, `tool_policy_counts`, `budget_status_counts`, `schema_status_counts`, `llm_usage_counts`, and `trace_tool_counts`, derived from saved harness metadata and trace steps.
 
+Citation observability uses the same validation boundary as the output guardrail. `citation_status_counts` distinguishes valid citations, missing files, uncited impact areas, and answers with no repository citation, using related files, impact-area files, onboarding plan files, and trace citations.
+
 `withWorkflowTimeout()` enforces the graph timeout. Timeout failures use the same deterministic fallback path as other workflow failures.
 
 `LLM_REQUEST_TIMEOUT_MS` controls individual model call timeouts for both the LangGraph workflow and the direct chat harness.

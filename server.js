@@ -1229,6 +1229,16 @@ function expandImpactChunks(project, question, primaryChunks, classification) {
   ]).slice(0, 14);
 }
 
+function collectCitationFiles(payload = {}) {
+  const impactAreas = payload.impact_areas || [];
+  return [
+    ...(payload.related_files || []).map((file) => file.file_path || file),
+    ...impactAreas.flatMap((area) => area.files || []),
+    ...(payload.plan?.flatMap((day) => day.files_to_read || []) || []),
+    ...(payload.trace?.flatMap((step) => step.citations || []) || [])
+  ].filter(Boolean);
+}
+
 function validateAgentCitations(project, payload) {
   const knownFiles = new Set(project.files.map((file) => file.path));
   const impactAreas = payload.impact_areas || [];
@@ -1239,10 +1249,7 @@ function validateAgentCitations(project, payload) {
       files: Array.isArray(area?.files) ? area.files : []
     }))
     .filter((area) => area.files.length === 0);
-  const citedFiles = [
-    ...(payload.related_files || []).map((file) => file.file_path || file),
-    ...impactAreas.flatMap((area) => area.files || [])
-  ].filter(Boolean);
+  const citedFiles = collectCitationFiles(payload);
   const missingFiles = citedFiles.filter((file) => !knownFiles.has(file));
   return {
     passed: citedFiles.length > 0 && missingFiles.length === 0 && uncitedImpactAreas.length === 0,
@@ -2149,6 +2156,7 @@ function generateOnboardingPlan(project, role, duration) {
 }
 
 function computeMetrics(store, projectId) {
+  const project = store.projects.find((item) => item.id === projectId);
   const questions = store.questions.filter((item) => item.projectId === projectId);
   const answers = store.answers.filter((item) => item.projectId === projectId);
   const feedback = store.feedback.filter((item) => {
@@ -2159,12 +2167,7 @@ function computeMetrics(store, projectId) {
   const negativeTypes = new Set(["not_helpful", "inaccurate", "missing_citation", "too_generic"]);
   const negative = feedback.filter((item) => negativeTypes.has(item.type)).length;
   const cited = answers.filter((item) => {
-    const refs = [
-      ...(item.payload?.related_files || []).map((file) => file.file_path || file),
-      ...(item.payload?.impact_areas?.flatMap((area) => area.files || []) || []),
-      ...(item.payload?.plan?.flatMap((day) => day.files_to_read || []) || []),
-      ...(item.payload?.trace?.flatMap((step) => step.citations || []) || [])
-    ].filter(Boolean);
+    const refs = collectCitationFiles(item.payload || {});
     return refs.length > 0;
   }).length;
   const uncertain = answers.filter((item) => {
@@ -2249,6 +2252,19 @@ function computeMetrics(store, projectId) {
     });
     return acc;
   }, {});
+  const citationStatusCounts = answers.reduce((acc, item) => {
+    if (!project) return acc;
+    const citation = validateAgentCitations(project, item.payload || {});
+    const status = citation.passed
+      ? "citation_valid"
+      : citation.missing_files.length
+        ? "missing_citation"
+        : citation.uncited_impact_areas.length
+          ? "uncited_impact_area"
+          : "no_citation";
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
   const fallbackReasonCounts = answers.reduce((acc, item) => {
     if (!item.payload?.harness?.fallback_used) return acc;
     const reason = item.payload.harness.model_adapter?.error_code
@@ -2329,6 +2345,7 @@ function computeMetrics(store, projectId) {
     schema_status_counts: rankCounts(schemaStatusCounts),
     llm_usage_counts: rankCounts(llmUsageCounts),
     trace_tool_counts: rankCounts(traceToolCounts),
+    citation_status_counts: rankCounts(citationStatusCounts),
     fallback_reasons: rankCounts(fallbackReasonCounts),
     recent_harness_runs: recentHarnessRuns,
     recent_safety_events: recentSafetyEvents,

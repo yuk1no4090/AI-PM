@@ -1673,6 +1673,19 @@ code {
   color: var(--danger);
 }
 
+.memory-events {
+  display: grid;
+  gap: 8px;
+}
+
+.memory-events h4 {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
 /* ---- Trace Steps ---- */
 .trace-step {
   display: grid;

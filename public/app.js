@@ -911,6 +911,7 @@ function renderMemoryManager() {
   const clear = state.lang === "zh" ? "清空" : "Clear all";
   const remove = state.lang === "zh" ? "删除" : "Remove";
   const preferences = state.memory?.preferences || {};
+  const events = (state.memory?.events || []).slice(0, 5);
   const rows = memoryPreferenceRows(preferences);
   return html`
     <div class="inspector-section memory-manager">
@@ -926,6 +927,21 @@ function renderMemoryManager() {
         </div>
         <button class="secondary memory-clear" data-memory-forget-all="true">${clear}</button>
       ` : `<p class="muted">${empty}</p>`}
+      <div class="memory-events">
+        <h4>Memory audit</h4>
+        ${events.length ? `
+          <div class="feedback-log">
+            ${events.map((item) => {
+              const preference = [item.key, item.value].filter(Boolean).join(": ");
+              return `<div>
+                <code>${escapeHtml(item.status || item.action || "event")}</code>
+                <span>${escapeHtml(preference || item.label || "memory")}</span>
+                <span>${escapeHtml(item.createdAt ? new Date(item.createdAt).toLocaleString() : "")}</span>
+              </div>`;
+            }).join("")}
+          </div>
+        ` : `<p class="muted">No memory events yet.</p>`}
+      </div>
     </div>
   `;
 }
@@ -1809,15 +1825,16 @@ async function handleMemorySuggestion(suggestionId, action) {
 async function forgetMemoryPreference(key, value) {
   try {
     const body = key
-      ? { key, value }
-      : {};
+      ? { projectId: state.project?.id, key, value }
+      : { projectId: state.project?.id };
     const payload = await api("/api/memory/forget", {
       method: "POST",
       body: JSON.stringify(body)
     });
     state.memory = {
       preferences: payload.preferences,
-      suggestions: payload.suggestions || state.memory?.suggestions || []
+      suggestions: payload.suggestions || state.memory?.suggestions || [],
+      events: payload.events || state.memory?.events || []
     };
     await refreshMetrics(false);
     await refreshMemory(false);

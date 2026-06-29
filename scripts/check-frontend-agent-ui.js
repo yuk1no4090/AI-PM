@@ -59,6 +59,10 @@ const requiredMemoryActionSnippets = [
   "/api/memory/confirm",
   "/api/memory/forget",
   "/api/memory?projectId=",
+  "state.memory?.events",
+  "payload.events || state.memory?.events || []",
+  "Memory audit",
+  "memory-events",
   "function refreshMemory",
   "function renderMemoryManager",
   "function forgetMemoryPreference",
@@ -138,6 +142,7 @@ const requiredStyleSnippets = [
   ".memory-state",
   ".memory-manager",
   ".memory-preferences",
+  ".memory-events",
   ".memory-clear",
   ".text-button",
   ".compact-trace"

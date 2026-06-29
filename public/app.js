@@ -1252,6 +1252,7 @@ function renderOnboardingMessage(message) {
     <article class="message">
       <div class="question">${escapeHtml(payload.role)} · ${escapeHtml(payload.duration)}</div>
       <div class="answer">
+        ${renderOptionalRuntimeStatus(payload)}
         <h3>${c.chat.goal}</h3>
         <p>${escapeHtml(payload.goal)}</p>
         <div class="plan-grid">
@@ -1266,6 +1267,17 @@ function renderOnboardingMessage(message) {
             </div>
           `)}
         </div>
+        <h3>${c.chat.guardrails}</h3>
+        <div class="guardrail-list">
+          ${renderList(payload.guardrails, (guardrail) => `
+            <div class="${escapeHtml(guardrail.status)}">
+              <strong>${escapeHtml(guardrail.name)}</strong>
+              <span>${escapeHtml(guardrail.status)}</span>
+              <p>${escapeHtml(guardrail.detail)}</p>
+            </div>
+          `)}
+        </div>
+        ${renderMemorySuggestions(payload.memory_suggestions)}
         ${feedbackBar(message.answerId)}
       </div>
     </article>

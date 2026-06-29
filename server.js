@@ -111,6 +111,7 @@ const AGENT_TOOL_REGISTRY = [
   { name: "context_expander_agent.expand_dependency_context", capability: "repo_context_expansion", access: "read-only", external_network: false },
   { name: "impact_analyst_agent.estimate_impact_risk", capability: "impact_analysis", access: "read-only", external_network: false },
   { name: "qa_planner_agent.plan_regression_tests", capability: "qa_planning", access: "read-only", external_network: false },
+  { name: "onboarding_planner_agent.generate_plan", capability: "onboarding_planning", access: "read-only", external_network: false },
   { name: "safety_guardrail_agent.validate_output", capability: "output_guardrail", access: "read-only", external_network: false },
   { name: "synthesizer_agent.compose_structured_answer", capability: "structured_synthesis", access: "read-only", external_network: false },
   { name: "agent_harness.fallback", capability: "deterministic_fallback", access: "read-only", external_network: false }
@@ -1778,6 +1779,47 @@ function buildChatHarnessReport({ runId, started, trace, modelEvent, errors }) {
   };
 }
 
+function buildOnboardingHarnessReport({ runId, started, trace, errors = [] }) {
+  const durationMs = Date.now() - started;
+  return {
+    run_id: runId,
+    runtime: "Onboarding Harness",
+    model_mode: "offline deterministic",
+    model_provider: "deterministic",
+    model_adapter: {
+      name: "deterministic-onboarding-planner",
+      provider: "deterministic",
+      model: "role-based-onboarding-plan",
+      llm_attempted: false,
+      llm_used: false,
+      schema_errors: [],
+      error: null,
+      error_code: null,
+      http_status: null,
+      duration_ms: 0
+    },
+    steps_executed: trace.length,
+    duration_ms: durationMs,
+    fallback_used: false,
+    fallback_reason: null,
+    schema_valid: errors.length === 0,
+    budgets: {
+      max_steps: 4,
+      timeout_ms: LLM_REQUEST_TIMEOUT_MS
+    },
+    budget_status: {
+      steps_executed: trace.length,
+      max_steps: 4,
+      step_budget_exceeded: trace.length > 4,
+      timeout_ms: LLM_REQUEST_TIMEOUT_MS,
+      duration_ms: durationMs,
+      timeout_exceeded: durationMs > LLM_REQUEST_TIMEOUT_MS
+    },
+    tool_registry: summarizeToolRegistry(),
+    errors
+  };
+}
+
 function withWorkflowTimeout(promise, timeoutMs) {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -2601,12 +2643,63 @@ async function handleApiUnlocked(req, res, pathname) {
     if (req.method === "POST" && pathname === "/api/onboarding") {
       const body = JSON.parse((await readBody(req)).toString("utf8") || "{}");
       const project = findProject(store, body.projectId);
+      const started = Date.now();
+      const runId = createHarnessRunId("onboarding");
       const payload = generateOnboardingPlan(project, body.role || "Backend Engineer", body.duration || "3 days");
+      const question = `Generate onboarding plan for ${payload.role}, ${payload.duration}`;
+      const inputSafety = scanInputSafety(question);
+      const memoryLearningAllowed = inputSafety.status === "passed";
+      const memorySuggestions = memoryLearningAllowed
+        ? createMemorySuggestions(store, project.id, question)
+        : [];
+      const outputSafety = scanOutputSafety(project, payload);
+      const trace = [
+        makeTraceStep({
+          step: "1. Input safety scan",
+          tool: "safety.scan_input",
+          purpose: "Check the onboarding request for prompt injection, secret requests, or write-tool intent.",
+          input: question,
+          output: {
+            status: inputSafety.status,
+            risk_types: inputSafety.risk_types,
+            memory_suggestions: memorySuggestions.length,
+            learning_skipped: !memoryLearningAllowed
+          }
+        }),
+        makeTraceStep({
+          step: "2. Generate onboarding plan",
+          tool: "onboarding_planner_agent.generate_plan",
+          purpose: "Create a role-based reading plan from recommended repository files.",
+          input: { role: payload.role, duration: payload.duration },
+          output: { days: payload.plan.length, files: collectCitationFiles(payload).length },
+          citations: collectCitationFiles(payload)
+        }),
+        makeTraceStep({
+          step: "3. Output safety scan",
+          tool: "safety_guardrail_agent.validate_output",
+          purpose: "Validate onboarding citations, sensitive output, and overconfidence before returning.",
+          input: { required: "Plan files must exist in the imported repository." },
+          output: { status: outputSafety.status, risk_types: outputSafety.risk_types }
+        })
+      ];
+      const toolSafety = validateTraceToolUse(trace);
+      const safety = mergeSafetyReports(inputSafety, outputSafety, toolSafety);
       payload.llm_used = false;
+      payload.memory_used = { used: false, summary: "none" };
+      payload.memory_suggestions = memorySuggestions;
+      payload.trace = trace;
+      payload.safety = safety;
+      payload.guardrails = safetyChecksToGuardrails(safety.checks);
+      payload.harness = buildOnboardingHarnessReport({
+        runId,
+        started,
+        trace,
+        errors: []
+      });
       const questionRecord = {
         id: crypto.randomUUID(),
         projectId: project.id,
-        question: `Generate onboarding plan for ${payload.role}, ${payload.duration}`,
+        question,
         kind: "onboarding",
         createdAt: new Date().toISOString()
       };
@@ -2621,6 +2714,9 @@ async function handleApiUnlocked(req, res, pathname) {
       };
       store.questions.push(questionRecord);
       store.answers.push(answerRecord);
+      if (memorySuggestions.length) {
+        store.memorySuggestions.push(...memorySuggestions);
+      }
       await saveStore(store);
       sendJson(res, 200, { answerId: answerRecord.id, kind: "onboarding", payload });
       return;

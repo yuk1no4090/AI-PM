@@ -29,6 +29,8 @@ Each node appends trace metadata so the UI can show the agent path instead of hi
 
 `/api/chat` is not a LangGraph workflow. It uses a lighter `Direct Chat Harness` that reuses the same model adapter, schema validation, trace shape, deterministic fallback, confirmed `memory_used` reporting, pending `memory_suggestions`, read-only tool policy, input/retrieval/output safety reports, and guardrail detail format. This keeps the existing chat API compatible while making ordinary Q&A and standard impact analysis observable through the same harness fields.
 
+`/api/onboarding` uses an `Onboarding Harness` around deterministic role-based plan generation. It exposes trace steps, confirmed-memory status, pending memory suggestions, citation/output safety, guardrails, budget metadata, and the same read-only tool registry so onboarding plans are visible in evaluation metrics.
+
 ## Memory Boundary
 
 Confirmed memory is stored in `data/store.json` under `userPreferences`. Confirmed preference memory is global for the local app instance, not project-scoped. Memory suggestions carry `projectId` so the UI and API can verify which project produced the suggestion before confirmation or ignore actions.
@@ -71,6 +73,8 @@ If no API key is configured, the model adapter reports deterministic offline ret
 `buildAgentHarnessReport()` creates the public harness payload for `/api/agent-impact`.
 
 `buildChatHarnessReport()` creates the equivalent lightweight payload for `/api/chat`.
+
+`buildOnboardingHarnessReport()` creates the deterministic harness payload for `/api/onboarding`.
 
 The harness reports:
 

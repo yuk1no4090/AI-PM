@@ -36,7 +36,9 @@ const missingRuntimeSnippets = requiredRuntimeSnippets.filter((snippet) => {
 
 const requiredChatRuntimeSnippets = [
   "function renderOptionalRuntimeStatus",
-  "renderOptionalRuntimeStatus(payload)"
+  "renderOptionalRuntimeStatus(payload)",
+  "function renderOnboardingMessage",
+  "renderMemorySuggestions(payload.memory_suggestions)"
 ];
 
 const missingChatRuntimeSnippets = requiredChatRuntimeSnippets.filter((snippet) => {

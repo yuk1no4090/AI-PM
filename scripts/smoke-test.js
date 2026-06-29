@@ -694,6 +694,24 @@ async function main() {
     assert((agent.payload.trace || []).some((step) => step.tool === "memory.load_preferences"), "trace missing memory node");
     assert((agent.payload.trace || []).some((step) => step.tool === "safety_guardrail_agent.validate_output"), "trace missing safety guardrail node");
 
+    const onboarding = await request("/api/onboarding", {
+      method: "POST",
+      body: JSON.stringify({
+        projectId,
+        role: "Frontend Engineer",
+        duration: "3 days"
+      })
+    });
+    assert(onboarding.kind === "onboarding", "onboarding endpoint returned wrong kind");
+    assert(/^onboarding_[0-9a-f-]{36}$/.test(onboarding.payload?.harness?.run_id || ""), "onboarding harness did not report a stable run_id");
+    assert(onboarding.payload.harness.runtime === "Onboarding Harness", "onboarding did not report onboarding harness");
+    assert(onboarding.payload.harness.model_adapter.llm_attempted === false, "onboarding harness should not attempt LLM");
+    assert(onboarding.payload?.safety?.status === "passed", "safe onboarding request should pass safety checks");
+    assert(Array.isArray(onboarding.payload.guardrails), "onboarding endpoint should expose guardrail details");
+    assert(onboarding.payload.guardrails.some((item) => item.name === "Citation coverage" && item.status === "passed"), "onboarding citation guardrail not surfaced");
+    assert((onboarding.payload.trace || []).some((step) => step.tool === "onboarding_planner_agent.generate_plan"), "onboarding trace missing planner step");
+    assert(onboarding.payload.memory_suggestions.some((item) => item.key === "role" && item.value === "Frontend Engineer"), "onboarding did not suggest role memory");
+
     const invalidFeedback = await requestError("/api/feedback", {
       method: "POST",
       body: JSON.stringify({ answerId: agent.answerId, type: "not-a-feedback-type" })
@@ -1042,6 +1060,7 @@ async function main() {
     assert(Array.isArray(evaluation.metrics.harness_runtime_counts), "evaluation did not report harness runtime counts");
     assert(evaluation.metrics.harness_runtime_counts.some((item) => item.type === "LangGraph StateGraph"), "evaluation did not count LangGraph runtime");
     assert(evaluation.metrics.harness_runtime_counts.some((item) => item.type === "Direct Chat Harness"), "evaluation did not count direct chat runtime");
+    assert(evaluation.metrics.harness_runtime_counts.some((item) => item.type === "Onboarding Harness"), "evaluation did not count onboarding runtime");
     assert(Array.isArray(evaluation.metrics.model_mode_counts), "evaluation did not report model mode counts");
     assert(evaluation.metrics.model_mode_counts.some((item) => item.type === "offline retrieval"), "evaluation did not count offline model mode");
     assert(Array.isArray(evaluation.metrics.tool_policy_counts), "evaluation did not report tool policy counts");

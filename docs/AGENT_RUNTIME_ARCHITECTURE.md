@@ -109,7 +109,7 @@ Feedback records preserve `harness_run_id` when the referenced answer payload in
 
 The same evaluation payload derives `recent_safety_events` from saved answers with `needs_review` safety status or recorded risk types. Each item includes the answer id, optional run id, answer kind, safety status, risk types, matching guardrails, and creation time.
 
-Safety payloads include `risk_details`, a normalized explanation list derived from `risk_types`, so the UI and harness audit can show why a risk was flagged without hard-coding descriptions in the frontend. Output safety scans the raw generated payload before finalization, then recursively redacts credential-like strings before answers and harness snapshots are stored or returned.
+Safety payloads include `risk_details`, a normalized explanation list derived from `risk_types`, so the UI and harness audit can show why a risk was flagged without hard-coding descriptions in the frontend. Output safety scans the raw generated payload before finalization, then recursively redacts credential-like strings before answers and harness snapshots are stored or returned. `safety.output_redaction` records whether redaction was applied, the number of credential-like matches replaced, and the redaction marker, without storing the raw values.
 
 It also derives `recent_memory_events` from project-owned memory audit events, with memory suggestions as a backward-compatible fallback for older stores. Each item includes action, suggestion id when available, preference key/value, display label, status, and creation time.
 

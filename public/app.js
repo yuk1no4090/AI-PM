@@ -1097,6 +1097,7 @@ function renderRuntimeStatus(payload) {
   const memory = payload.memory_used || {};
   const harness = payload.harness || {};
   const safety = payload.safety || {};
+  const outputRedaction = safety.output_redaction || {};
   const budget = harness.budget_status || {};
   const modelAdapter = harness.model_adapter || {};
   const pendingMemory = (payload.memory_suggestions || []).filter((item) => item.status === "pending").length;
@@ -1118,8 +1119,9 @@ function renderRuntimeStatus(payload) {
   ].filter(Boolean).join(" | ");
   const safetyStatus = [
     safety.status || c.chat.unknown,
-    ...(safety.risk_types || [])
-  ].join(" | ");
+    ...(safety.risk_types || []),
+    outputRedaction.applied ? `redacted ${outputRedaction.match_count || 0}` : null
+  ].filter(Boolean).join(" | ");
   const cards = [
     [c.chat.memory, memoryStatus],
     [c.chat.harness, harnessStatus],

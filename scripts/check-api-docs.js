@@ -67,6 +67,7 @@ const requiredErrorDocSnippets = [
   "harness snapshot count",
   "persisted harness run audit",
   "risk_details",
+  "output_redaction",
   "recent feedback run correlation",
   "git commit",
   "Node runtime",

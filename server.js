@@ -1083,6 +1083,33 @@ function redactSensitivePayload(value) {
   );
 }
 
+function countSensitivePayloadMatches(value) {
+  const serialized = typeof value === "string" ? value : JSON.stringify(value || "");
+  const pattern = new RegExp(SENSITIVE_VALUE_PATTERN.source, "gi");
+  return (serialized.match(pattern) || []).length;
+}
+
+function redactSensitivePayloadWithReport(value) {
+  const matchCount = countSensitivePayloadMatches(value);
+  return {
+    payload: redactSensitivePayload(value),
+    redaction: {
+      applied: matchCount > 0,
+      match_count: matchCount,
+      marker: SECRET_REDACTION
+    }
+  };
+}
+
+function attachOutputRedactionReport(payload, redaction) {
+  if (!payload || typeof payload !== "object") return payload;
+  payload.safety = {
+    ...(payload.safety || {}),
+    output_redaction: redaction
+  };
+  return payload;
+}
+
 function estimateTokenCount(value) {
   const text = typeof value === "string" ? value : JSON.stringify(value || "");
   return Math.ceil(text.length / 4);
@@ -2487,7 +2514,8 @@ async function runAgenticImpactWorkflow(store, project, question) {
     errors
   });
   payload.llm_used = !!payload.harness.model_adapter.llm_used;
-  payload = redactSensitivePayload(payload);
+  const redacted = redactSensitivePayloadWithReport(payload);
+  payload = attachOutputRedactionReport(redacted.payload, redacted.redaction);
   return payload;
 }
 
@@ -3001,7 +3029,8 @@ async function handleApiUnlocked(req, res, pathname) {
         modelEvent: modelResult.event,
         errors: []
       });
-      payload = redactSensitivePayload(payload);
+      const redacted = redactSensitivePayloadWithReport(payload);
+      payload = attachOutputRedactionReport(redacted.payload, redacted.redaction);
       const questionRecord = {
         id: crypto.randomUUID(),
         projectId: project.id,
@@ -3085,7 +3114,8 @@ async function handleApiUnlocked(req, res, pathname) {
         trace,
         errors: []
       });
-      payload = redactSensitivePayload(payload);
+      const redacted = redactSensitivePayloadWithReport(payload);
+      payload = attachOutputRedactionReport(redacted.payload, redacted.redaction);
       const questionRecord = {
         id: crypto.randomUUID(),
         projectId: project.id,

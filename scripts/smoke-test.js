@@ -364,6 +364,8 @@ async function runLlmSchemaFallbackSmoke() {
     assert(sensitiveOutput.payload.guardrails.some((item) => item.name === "Sensitive output" && item.status === "needs_review"), "sensitive output guardrail not surfaced");
     assert(!JSON.stringify(sensitiveOutput.payload).includes("sk-smoketest1234567890"), "sensitive output payload should redact raw secret-like values");
     assert(JSON.stringify(sensitiveOutput.payload).includes("[REDACTED_SECRET]"), "sensitive output payload should include redaction marker");
+    assert(sensitiveOutput.payload.safety.output_redaction?.applied === true, "sensitive output redaction report should mark redaction applied");
+    assert(sensitiveOutput.payload.safety.output_redaction?.match_count >= 1, "sensitive output redaction report should count redacted matches");
     const uncitedImpact = await requestTo(baseUrl, "/api/agent-impact", {
       method: "POST",
       body: JSON.stringify({
@@ -832,6 +834,7 @@ async function main() {
     assert(agent.payload?.safety?.status === "passed", "safe agent request should pass safety checks");
     assert(Array.isArray(agent.payload?.safety?.checks), "agent payload missing safety checks");
     assert(agent.payload.safety.checks.length >= 7, "safety checks should include input, retrieval, output, and tool-policy guardrails");
+    assert(agent.payload.safety.output_redaction?.applied === false, "safe agent output should report no output redaction");
     assert(agent.payload.guardrails.some((item) => item.name === "Sensitive output" && item.status === "passed"), "sensitive output guardrail not surfaced");
     assert(agent.payload.guardrails.some((item) => item.name === "Agent tool policy" && item.status === "passed"), "tool policy guardrail not surfaced");
     assert(Array.isArray(agent.payload?.memory_suggestions), "agent payload missing memory suggestions");

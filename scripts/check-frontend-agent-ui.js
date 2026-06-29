@@ -28,6 +28,8 @@ const requiredRuntimeSnippets = [
   "c.chat.budgetExceeded",
   "c.chat.budgetOk",
   "safety.risk_types",
+  "safety.output_redaction",
+  "redacted",
   "runtime-status"
 ];
 

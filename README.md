@@ -160,7 +160,7 @@ Evaluation metrics are scoped to the requested `projectId`, so safety status, me
 
 `GET /api/harness-run` returns a persisted harness run audit for one `projectId` and `runId`, including the stored run snapshot plus answer trace, harness, safety, and guardrail metadata.
 
-Safety payloads include `risk_details`, a normalized explanation list for each risk type so review screens can show why guardrails were triggered.
+Safety payloads include `risk_details`, a normalized explanation list for each risk type so review screens can show why guardrails were triggered. Output guardrails scan the raw generated payload first, then redact credential-like strings before the payload is stored or returned.
 
 See [docs/AGENT_RUNTIME_ARCHITECTURE.md](docs/AGENT_RUNTIME_ARCHITECTURE.md) for the LangGraph, memory, harness, and safety implementation boundary.
 

@@ -362,6 +362,8 @@ async function runLlmSchemaFallbackSmoke() {
     assert(sensitiveOutput.payload.safety.status === "needs_review", "sensitive output should need review");
     assert(sensitiveOutput.payload.safety.risk_types.includes("sensitive_output"), "sensitive output risk not reported");
     assert(sensitiveOutput.payload.guardrails.some((item) => item.name === "Sensitive output" && item.status === "needs_review"), "sensitive output guardrail not surfaced");
+    assert(!JSON.stringify(sensitiveOutput.payload).includes("sk-smoketest1234567890"), "sensitive output payload should redact raw secret-like values");
+    assert(JSON.stringify(sensitiveOutput.payload).includes("[REDACTED_SECRET]"), "sensitive output payload should include redaction marker");
     const uncitedImpact = await requestTo(baseUrl, "/api/agent-impact", {
       method: "POST",
       body: JSON.stringify({

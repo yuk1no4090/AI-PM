@@ -1032,6 +1032,15 @@ function redactSensitiveText(text) {
     .replace(/\b([A-Za-z0-9_]*(?:api[_-]?key|apikey|token|password|credential|secret)[A-Za-z0-9_]*)\b\s*[:=]\s*([A-Za-z0-9_./+-]*\d[A-Za-z0-9_./+-]{7,})/gi, "$1 = [REDACTED_SECRET]");
 }
 
+function redactSensitivePayload(value) {
+  if (typeof value === "string") return redactSensitiveText(value);
+  if (Array.isArray(value)) return value.map((item) => redactSensitivePayload(item));
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [key, redactSensitivePayload(item)])
+  );
+}
+
 function estimateTokenCount(value) {
   const text = typeof value === "string" ? value : JSON.stringify(value || "");
   return Math.ceil(text.length / 4);
@@ -2408,7 +2417,7 @@ async function runAgenticImpactWorkflow(store, project, question) {
     };
   }
 
-  const payload = state.finalPayload;
+  let payload = state.finalPayload;
   payload.trace = state.trace;
   payload.harness = buildAgentHarnessReport({
     runId,
@@ -2418,6 +2427,7 @@ async function runAgenticImpactWorkflow(store, project, question) {
     errors
   });
   payload.llm_used = !!payload.harness.model_adapter.llm_used;
+  payload = redactSensitivePayload(payload);
   return payload;
 }
 
@@ -2891,6 +2901,7 @@ async function handleApiUnlocked(req, res, pathname) {
         modelEvent: modelResult.event,
         errors: []
       });
+      payload = redactSensitivePayload(payload);
       const questionRecord = {
         id: crypto.randomUUID(),
         projectId: project.id,
@@ -2923,7 +2934,7 @@ async function handleApiUnlocked(req, res, pathname) {
       const project = findProject(store, body.projectId);
       const started = Date.now();
       const runId = createHarnessRunId("onboarding");
-      const payload = generateOnboardingPlan(project, body.role || "Backend Engineer", body.duration || "3 days");
+      let payload = generateOnboardingPlan(project, body.role || "Backend Engineer", body.duration || "3 days");
       const question = `Generate onboarding plan for ${payload.role}, ${payload.duration}`;
       const inputSafety = scanInputSafety(question);
       const memoryLearningAllowed = inputSafety.status === "passed";
@@ -2974,6 +2985,7 @@ async function handleApiUnlocked(req, res, pathname) {
         trace,
         errors: []
       });
+      payload = redactSensitivePayload(payload);
       const questionRecord = {
         id: crypto.randomUUID(),
         projectId: project.id,
